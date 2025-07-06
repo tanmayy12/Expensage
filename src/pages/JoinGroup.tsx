@@ -22,7 +22,7 @@ const JoinGroup = () => {
       return;
     }
     setStatus("joining");
-    fetch(`http://localhost:4000/api/groups/join/${inviteToken}`, {
+    fetch(`${import.meta.env.VITE_API_URL}/groups/join/${inviteToken}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
     })

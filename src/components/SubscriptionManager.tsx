@@ -125,7 +125,7 @@ const SubscriptionManager = () => {
       setError(null);
       try {
         const token = localStorage.getItem('jwt');
-        const res = await fetch('http://localhost:4000/api/subscriptions', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/subscriptions`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch subscriptions');
@@ -158,7 +158,7 @@ const SubscriptionManager = () => {
     setError(null);
     try {
       const token = localStorage.getItem('jwt');
-      const res = await fetch('http://localhost:4000/api/subscriptions', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/subscriptions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -252,7 +252,7 @@ const SubscriptionManager = () => {
     setError(null);
     try {
       const token = localStorage.getItem('jwt');
-      const res = await fetch(`http://localhost:4000/api/subscriptions/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/subscriptions/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

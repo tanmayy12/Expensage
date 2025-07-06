@@ -47,7 +47,7 @@ const BudgetTracker = ({ transactions }: BudgetTrackerProps) => {
       setError(null);
       try {
         const token = localStorage.getItem('jwt');
-        const res = await fetch('http://localhost:4000/api/budgets', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/budgets`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch budgets');
@@ -75,7 +75,7 @@ const BudgetTracker = ({ transactions }: BudgetTrackerProps) => {
     setError(null);
     try {
       const token = localStorage.getItem('jwt');
-      const res = await fetch('http://localhost:4000/api/budgets', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/budgets`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +107,7 @@ const BudgetTracker = ({ transactions }: BudgetTrackerProps) => {
     setError(null);
     try {
       const token = localStorage.getItem('jwt');
-      const res = await fetch(`http://localhost:4000/api/budgets/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/budgets/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

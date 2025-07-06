@@ -65,7 +65,7 @@ const GroupExpenses = () => {
       setError(null);
       try {
         const token = localStorage.getItem('jwt');
-        const res = await fetch('http://localhost:4000/api/groups', {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/groups`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) throw new Error('Failed to fetch groups');
@@ -85,7 +85,7 @@ const GroupExpenses = () => {
   const fetchBalances = async (groupId: string) => {
     try {
       const token = localStorage.getItem('jwt');
-      const res = await fetch(`http://localhost:4000/api/groups/${groupId}/balances`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/balances`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to fetch balances');
@@ -111,7 +111,7 @@ const GroupExpenses = () => {
     try {
       const token = localStorage.getItem('jwt');
       // Create group
-      const res = await fetch('http://localhost:4000/api/groups', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ title: newGroupName }),
@@ -119,7 +119,7 @@ const GroupExpenses = () => {
       if (!res.ok) throw new Error('Failed to create group');
       const group = await res.json();
       // Fetch invite link
-      const inviteRes = await fetch(`http://localhost:4000/api/groups/${group.id}/invite`, {
+      const inviteRes = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}/invite`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       let link = '';
@@ -153,7 +153,7 @@ const GroupExpenses = () => {
     // Fetch invite link
     try {
       const token = localStorage.getItem('jwt');
-      const res = await fetch(`http://localhost:4000/api/groups/${groupId}/invite`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/invite`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -177,7 +177,7 @@ const GroupExpenses = () => {
       setGroupInviteLoading(groupId);
       try {
         const token = localStorage.getItem('jwt');
-        const res = await fetch(`http://localhost:4000/api/groups/${groupId}/invite`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/invite`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -200,7 +200,7 @@ const GroupExpenses = () => {
     setExpenseLoading(false);
     try {
       const token = localStorage.getItem('jwt');
-      const res = await fetch(`http://localhost:4000/api/groups/${groupId}/members`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/members`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to fetch group members');
@@ -215,7 +215,7 @@ const GroupExpenses = () => {
   const fetchGroupExpenses = async (groupId: string) => {
     try {
       const token = localStorage.getItem('jwt');
-      const res = await fetch(`http://localhost:4000/api/groups/${groupId}/expenses`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/expenses`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error('Failed to fetch group expenses');
@@ -233,7 +233,7 @@ const GroupExpenses = () => {
     if (groups.length > 0) {
       const token = localStorage.getItem('jwt');
       groups.forEach(group => {
-        fetch(`http://localhost:4000/api/groups/${group.id}/members`, {
+        fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}/members`, {
           headers: { Authorization: `Bearer ${token}` },
         })
           .then(res => res.json())
@@ -296,7 +296,7 @@ const GroupExpenses = () => {
                     try {
                       const token = localStorage.getItem('jwt');
                       // Create group
-                      const res = await fetch('http://localhost:4000/api/groups', {
+                      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                         body: JSON.stringify({ title: newGroupName }),
@@ -379,7 +379,7 @@ const GroupExpenses = () => {
               <Button variant="destructive" size="sm" className="flex-1" onClick={async () => {
                 try {
                   const token = localStorage.getItem('jwt');
-                  const res = await fetch(`http://localhost:4000/api/groups/${group.id}`, {
+                  const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}`, {
                     method: 'DELETE',
                     headers: { Authorization: `Bearer ${token}` },
                   });
@@ -469,7 +469,7 @@ const GroupExpenses = () => {
                   const splits = splitMethod === 'equal'
                     ? undefined
                     : groupMembers.map(m => ({ userId: m.id, amount: parseFloat(customSplits[m.id] || '0') }));
-                  const res = await fetch(`http://localhost:4000/api/groups/${showAddExpenseForm.groupId}/expenses`, {
+                  const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${showAddExpenseForm.groupId}/expenses`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                     body: JSON.stringify({

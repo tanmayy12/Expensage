@@ -75,7 +75,7 @@ const Index = () => {
     if (isAuthenticated) {
       setLoading(true);
       setError(null);
-      fetch('http://localhost:4000/api/transactions', {
+      fetch(`${import.meta.env.VITE_API_URL}/transactions`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then(res => res.json())
@@ -92,7 +92,7 @@ const Index = () => {
   // Add transaction handler
   const handleAddTransaction = (transaction: Omit<Transaction, 'id'>) => {
     setLoading(true);
-    fetch('http://localhost:4000/api/transactions', {
+    fetch(`${import.meta.env.VITE_API_URL}/transactions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ const Index = () => {
   // Delete transaction handler
   const handleDeleteTransaction = (id: string) => {
     setLoading(true);
-    fetch(`http://localhost:4000/api/transactions/${id}`, {
+    fetch(`${import.meta.env.VITE_API_URL}/transactions/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -129,7 +129,7 @@ const Index = () => {
   // Update transaction handler
   const handleUpdateTransaction = (id: string, updated: Partial<Transaction>) => {
     setLoading(true);
-    fetch(`http://localhost:4000/api/transactions/${id}`, {
+    fetch(`${import.meta.env.VITE_API_URL}/transactions/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

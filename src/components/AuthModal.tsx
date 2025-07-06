@@ -26,7 +26,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     e.preventDefault();
     if (isLogin) {
       // LOGIN
-      const res = await fetch("http://localhost:4000/api/auth/login", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: formData.email, password: formData.password }),
@@ -40,7 +40,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
       }
     } else {
       // SIGNUP
-      const res = await fetch("http://localhost:4000/api/auth/register", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
