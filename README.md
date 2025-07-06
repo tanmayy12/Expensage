@@ -2,15 +2,9 @@
 
 ## Project info
 
-**URL**: https://expensetracker.dev/projects/5122f9ff-0028-4e7e-aed6-f0b55a25e3db
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
 **Use Expense Tracker**
 
-Simply visit the [Expensage] (https://expensetracker.dev/projects/5122f9ff-0028-4e7e-aed6-f0b55a25e3db) 
+Simply visit the [Expensage] (https://expensage.netlify.app/) 
 
 Changes made via Expense Tracker will be committed automatically to this repo.
 
