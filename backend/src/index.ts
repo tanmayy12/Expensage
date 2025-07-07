@@ -11,7 +11,14 @@ import subscriptionsRoutes from "./routes/subscriptions";
 import groupsRoutes from "./routes/groups";
 
 const app = express();
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://expensage.netlify.app"
+];
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true
+}));
 app.use(express.json());
 app.use(passport.initialize());
 
