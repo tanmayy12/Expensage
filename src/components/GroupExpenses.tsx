@@ -411,6 +411,14 @@ const GroupExpenses = () => {
                       if (!res.ok) throw new Error('Failed to leave group');
                       // Remove group from UI
                       setGroups(prev => prev.filter(g => g.id !== group.id));
+                      // Remove user from groupMembersMap for this group (for others, will update on next fetch)
+                      setGroupMembersMap(prev => {
+                        const updated = { ...prev };
+                        if (updated[group.id]) {
+                          updated[group.id] = updated[group.id].filter(m => m.id !== userId);
+                        }
+                        return updated;
+                      });
                     } catch (err) {
                       // Optionally show error toast
                     }
@@ -441,9 +449,6 @@ const GroupExpenses = () => {
             </Card>
           );
         })}
-      </div>
-      <div className="w-full flex justify-center mt-8">
-        <span className="text-gray-300 text-lg font-semibold">More features coming soon...</span>
       </div>
       {/* Add Members Modal */}
       <Dialog open={showAddMembersModal.open} onOpenChange={open => setShowAddMembersModal({ open, groupId: open ? showAddMembersModal.groupId : null })}>
