@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
     password: '',
     confirmPassword: ''
   });
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +37,7 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
       if (data.token) {
         localStorage.setItem('jwt', data.token);
         onSuccess();
+        navigate('/');
       } else {
         alert(data.error || "Login failed");
       }
