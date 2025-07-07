@@ -352,6 +352,7 @@ const GroupExpenses = () => {
       {error && <div className="text-red-600">{error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {groups.map(group => {
+          const isCreator = group.createdBy === localStorage.getItem('userName');
           const isMember = groupMembersMap[group.id]?.some(m => m.id === userId);
           const hasLoadedMembers = Object.prototype.hasOwnProperty.call(groupMembersMap, group.id);
           if (hasLoadedMembers && !isMember) return null; // Hide card only after members have loaded and user is not part of it
