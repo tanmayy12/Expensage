@@ -119,6 +119,15 @@ const GroupExpenses = () => {
       });
       if (!res.ok) throw new Error('Failed to create group');
       const group = await res.json();
+      // Optimistically add the group and user to state
+      const userId = localStorage.getItem('userId');
+      const userName = localStorage.getItem('userName');
+      const userEmail = localStorage.getItem('userEmail');
+      setGroups(prev => [group, ...prev]);
+      setGroupMembersMap(prev => ({
+        ...prev,
+        [group.id]: [{ id: userId, name: userName, email: userEmail }]
+      }));
       // Fetch invite link
       const inviteRes = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}/invite`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -131,8 +140,8 @@ const GroupExpenses = () => {
       setInviteModalGroupName(group.title);
       setInviteModalLink(link);
       setShowInviteModal(true);
-      fetchGroups();
-    } catch (err: any) {
+      fetchGroups(); // Still call this to sync with backend
+    } catch (err) {
       setCreateError(err.message || 'Error creating group');
     } finally {
       setCreateLoading(false);
