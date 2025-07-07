@@ -81,7 +81,9 @@ const Index = () => {
         .then(res => res.json())
         .then(data => {
           setTransactions(
-            data.map((t: any) => ({ ...t, date: new Date(t.date) }))
+            data
+              .map((t: any) => ({ ...t, date: new Date(t.date) }))
+              .sort((a, b) => b.date - a.date)
           );
         })
         .catch(err => setError('Failed to fetch transactions'))
@@ -102,10 +104,9 @@ const Index = () => {
     })
       .then(res => res.json())
       .then(newTxn => {
-        setTransactions(prev => [
-          { ...newTxn, date: new Date(newTxn.date) },
-          ...prev,
-        ]);
+        setTransactions(prev =>
+          [{ ...newTxn, date: new Date(newTxn.date) }, ...prev].sort((a, b) => b.date - a.date)
+        );
         setIsAddModalOpen(false);
       })
       .catch(() => setError('Failed to add transaction'))
@@ -140,7 +141,9 @@ const Index = () => {
       .then(res => res.json())
       .then(updatedTxn => {
         setTransactions(prev =>
-          prev.map(t => (t.id === id ? { ...updatedTxn, date: new Date(updatedTxn.date) } : t))
+          prev
+            .map(t => (t.id === id ? { ...updatedTxn, date: new Date(updatedTxn.date) } : t))
+            .sort((a, b) => b.date - a.date)
         );
       })
       .catch(() => setError('Failed to update transaction'))
