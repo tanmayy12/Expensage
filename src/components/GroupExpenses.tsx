@@ -317,6 +317,17 @@ const GroupExpenses = () => {
                         body: JSON.stringify({ title: newGroupName }),
                       });
                       if (!res.ok) throw new Error('Failed to create group');
+                      const group = await res.json();
+                      // Optimistically show the new group card and mark the current user as a member
+                      const currentUserId = localStorage.getItem('userId');
+                      const currentUserName = localStorage.getItem('userName');
+                      const currentUserEmail = localStorage.getItem('userEmail');
+                      setGroups(prev => [group, ...prev]);
+                      setGroupMembersMap(prev => ({
+                        ...prev,
+                        [group.id]: [{ id: currentUserId, name: currentUserName, email: currentUserEmail }]
+                      }));
+                      // Fetch the complete groups list from the server to stay in sync (non-blocking)
                       fetchGroups();
                       setShowAddForm(false); // Close the form after group creation
                       setNewGroupName('');
@@ -343,7 +354,7 @@ const GroupExpenses = () => {
         {groups.map(group => {
           const isCreator = group.createdBy === localStorage.getItem('userName');
           const isMember = groupMembersMap[group.id]?.some(m => m.id === userId);
-          if (!isMember) return null; // Hide card if user is not a member
+          if (!isMember && !isCreator) return null; // Hide card unless the user is the creator or a member
           return (
             <Card key={group.id} className="glass-card p-6 flex flex-col gap-4 border-blue-200 shadow relative">
               <div className="font-bold text-lg flex items-center gap-2 mb-2 text-white">
