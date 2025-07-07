@@ -140,7 +140,10 @@ const GroupExpenses = () => {
       setInviteModalGroupName(group.title);
       setInviteModalLink(link);
       setShowInviteModal(true);
-      fetchGroups(); // Still call this to sync with backend
+      // Delay fetchGroups to allow backend to update
+      setTimeout(() => {
+        fetchGroups();
+      }, 1000); // 1 second delay
     } catch (err) {
       setCreateError(err.message || 'Error creating group');
     } finally {
