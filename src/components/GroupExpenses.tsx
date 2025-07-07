@@ -284,8 +284,10 @@ const GroupExpenses = () => {
           <CardContent>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Group Name</label>
+                <label htmlFor="group-name" className="block text-sm font-medium mb-1">Group Name</label>
                 <Input
+                  id="group-name"
+                  name="group-name"
                   type="text"
                   placeholder="Group name (e.g. Roommates, Goa Trip)"
                   value={newGroupName}
