@@ -353,10 +353,10 @@ const GroupExpenses = () => {
               <div className="font-semibold mb-1 text-sm text-gray-500">Recent Expenses</div>
               <ul className="space-y-2">
                 {(groupExpenses[group.id] || []).slice(0, 5).map(exp => (
-                  <li key={exp.id} className="bg-gray-50 rounded p-2 flex flex-col gap-1 border">
+                  <li key={exp.id} className="bg-gray-800 rounded p-2 flex flex-col gap-1 border border-gray-700 text-white">
                     <div className="flex items-center gap-2 text-sm">
                       <span className="font-medium">{exp.description}</span>
-                      <span className="text-blue-700 font-bold ml-auto">₹{exp.amount.toFixed(2)}</span>
+                      <span className="text-blue-400 font-bold ml-auto">₹{exp.amount.toFixed(2)}</span>
                     </div>
                     <div className="text-xs text-gray-300 flex gap-2">
                       <span>Paid by: {exp.shares && exp.shares.length > 0 && exp.shares.find(s => s.userId === exp.paidBy)?.user?.name || exp.paidBy}</span>
