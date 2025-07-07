@@ -11,6 +11,7 @@ interface Group {
   id: string;
   title: string;
   createdAt?: string;
+  createdBy: string;
 }
 
 interface Balance {
@@ -325,94 +326,124 @@ const GroupExpenses = () => {
       {loading && <div>Loading...</div>}
       {error && <div className="text-red-600">{error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {groups.map(group => (
-          <Card key={group.id} className="glass-card p-6 flex flex-col gap-4 border-blue-200 shadow relative">
-            <div className="font-bold text-lg flex items-center gap-2 mb-2 text-white">
-              <DollarSign className="h-5 w-5 text-green-600" /> {group.title}
-            </div>
-            {/* Members row */}
-            <div className="flex flex-wrap gap-2 mb-2">
-              {groupMembersMap[group.id]?.length > 0 ? (
-                groupMembersMap[group.id].map(m => (
-                  <span key={m.id} className="bg-blue-900/40 text-blue-200 rounded px-2 py-0.5 text-xs font-medium">
-                    {m.name || m.email}
-                  </span>
-                ))
-              ) : (
-                <span className="text-xs text-gray-400">No members yet</span>
-              )}
-            </div>
-            {/* Created At row, styled like SubscriptionManager's Next Payment */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">Created At</span>
-              <span className="text-sm">
-                {group.createdAt ? new Date(group.createdAt).toLocaleDateString() : '—'}
-                          </span>
-                        </div>
-            <div className="mt-4">
-              <div className="font-semibold mb-1 text-sm text-gray-500">Recent Expenses</div>
-              <ul className="space-y-2">
-                {(groupExpenses[group.id] || []).slice(0, 5).map(exp => (
-                  <li key={exp.id} className="bg-gray-800 rounded p-2 flex flex-col gap-1 border border-gray-700 text-white">
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="font-medium">{exp.description}</span>
-                      <span className="text-blue-400 font-bold ml-auto">₹{exp.amount.toFixed(2)}</span>
-                    </div>
-                    <div className="text-xs text-gray-300 flex gap-2">
-                      <span>Paid by: {exp.shares && exp.shares.length > 0 && exp.shares.find(s => s.userId === exp.paidBy)?.user?.name || exp.paidBy}</span>
-                      <span>| Split: {exp.shares && exp.shares.length > 0 ? exp.shares.map(s => `${s.user?.name || s.userId}: ₹${s.amount.toFixed(2)}`).join(', ') : 'Equal'}</span>
-                    </div>
-                  </li>
-                ))}
-                {(groupExpenses[group.id] || []).length === 0 && <li className="text-xs text-gray-200">No expenses yet</li>}
-              </ul>
-            </div>
-            <div className="flex gap-2 mt-4">
-              <Button size="sm" className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={() => handleShowGroupInvite(group.id)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Members
-              </Button>
-              <Button size="sm" className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white" onClick={() => handleOpenAddExpense(group.id)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Expense
-              </Button>
-              <Button variant="destructive" size="sm" className="flex-1" onClick={async () => {
-                try {
-                  const token = localStorage.getItem('jwt');
-                  const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}`, {
-                    method: 'DELETE',
-                    headers: { Authorization: `Bearer ${token}` },
-                  });
-                  if (!res.ok) throw new Error('Failed to delete group');
-                  fetchGroups();
-                } catch (err) {
-                  // Optionally show error toast
-                }
-              }} title="Delete Group">
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete
-              </Button>
-            </div>
-            {/* Inline invite link for this group */}
-            {activeInviteGroupId === group.id && (
-              <div className="w-full mt-2 flex items-center gap-2">
-                {groupInviteLoading === group.id ? (
-                  <span className="text-xs text-gray-300">Loading invite link...</span>
-                ) : groupInviteLinks[group.id] ? (
-                  <>
-                    <span className="text-xs text-gray-300 break-all">{groupInviteLinks[group.id]}</span>
-                    <Button type="button" variant="outline" size="sm" onClick={() => {
-                      navigator.clipboard.writeText(groupInviteLinks[group.id]);
-                      setGroupInviteCopied(group.id);
-                      setTimeout(() => setGroupInviteCopied(null), 1500);
-                    }}><Copy className="h-4 w-4" /></Button>
-                    {groupInviteCopied === group.id && <span className="text-green-600 text-xs ml-1">Copied!</span>}
-                  </>
-                ) : null}
+        {groups.map(group => {
+          const isCreator = group.createdBy === localStorage.getItem('userName');
+          const isMember = groupMembersMap[group.id]?.some(m => m.id === userId);
+          if (!isMember) return null; // Hide card if user is not a member
+          return (
+            <Card key={group.id} className="glass-card p-6 flex flex-col gap-4 border-blue-200 shadow relative">
+              <div className="font-bold text-lg flex items-center gap-2 mb-2 text-white">
+                <DollarSign className="h-5 w-5 text-green-600" /> {group.title}
               </div>
-            )}
-          </Card>
-        ))}
+              {/* Members row */}
+              <div className="flex flex-wrap gap-2 mb-2">
+                {groupMembersMap[group.id]?.length > 0 ? (
+                  groupMembersMap[group.id].map(m => (
+                    <span key={m.id} className="bg-blue-900/40 text-blue-200 rounded px-2 py-0.5 text-xs font-medium">
+                      {m.name || m.email}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-gray-400">No members yet</span>
+                )}
+              </div>
+              {/* Created At row */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">Created At</span>
+                <span className="text-sm">
+                  {group.createdAt ? new Date(group.createdAt).toLocaleDateString() : '—'}
+                </span>
+              </div>
+              <div className="mt-4">
+                <div className="font-semibold mb-1 text-sm text-gray-500">Recent Expenses</div>
+                <ul className="space-y-2">
+                  {(groupExpenses[group.id] || []).slice(0, 5).map(exp => (
+                    <li key={exp.id} className="bg-gray-800 rounded p-2 flex flex-col gap-1 border border-gray-700 text-white">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-medium">{exp.description}</span>
+                        <span className="text-blue-400 font-bold ml-auto">₹{exp.amount.toFixed(2)}</span>
+                      </div>
+                      <div className="text-xs text-gray-300 flex gap-2">
+                        <span>Paid by: {exp.shares && exp.shares.length > 0 && exp.shares.find(s => s.userId === exp.paidBy)?.user?.name || exp.paidBy}</span>
+                        <span>| Split: {exp.shares && exp.shares.length > 0 ? exp.shares.map(s => `${s.user?.name || s.userId}: ₹${s.amount.toFixed(2)}`).join(', ') : 'Equal'}</span>
+                      </div>
+                    </li>
+                  ))}
+                  {(groupExpenses[group.id] || []).length === 0 && <li className="text-xs text-gray-200">No expenses yet</li>}
+                </ul>
+              </div>
+              <div className="flex gap-2 mt-4">
+                {isCreator ? (
+                  <>
+                    <Button size="sm" className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={() => handleShowGroupInvite(group.id)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Members
+                    </Button>
+                    <Button size="sm" className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white" onClick={() => handleOpenAddExpense(group.id)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Expense
+                    </Button>
+                    <Button variant="destructive" size="sm" className="flex-1" onClick={async () => {
+                      try {
+                        const token = localStorage.getItem('jwt');
+                        const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}`, {
+                          method: 'DELETE',
+                          headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (!res.ok) throw new Error('Failed to delete group');
+                        fetchGroups();
+                      } catch (err) {
+                        // Optionally show error toast
+                      }
+                    }} title="Delete Group">
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="destructive" size="sm" className="flex-1" onClick={async () => {
+                    try {
+                      const token = localStorage.getItem('jwt');
+                      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}/members/${userId}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${token}` },
+                      });
+                      if (!res.ok) throw new Error('Failed to leave group');
+                      // Remove group from UI
+                      setGroups(prev => prev.filter(g => g.id !== group.id));
+                    } catch (err) {
+                      // Optionally show error toast
+                    }
+                  }} title="Leave Group">
+                    <X className="h-4 w-4 mr-1" />
+                    Leave Group
+                  </Button>
+                )}
+              </div>
+              {/* Inline invite link for this group */}
+              {activeInviteGroupId === group.id && (
+                <div className="w-full mt-2 flex items-center gap-2">
+                  {groupInviteLoading === group.id ? (
+                    <span className="text-xs text-gray-300">Loading invite link...</span>
+                  ) : groupInviteLinks[group.id] ? (
+                    <>
+                      <span className="text-xs text-gray-300 break-all">{groupInviteLinks[group.id]}</span>
+                      <Button type="button" variant="outline" size="sm" onClick={() => {
+                        navigator.clipboard.writeText(groupInviteLinks[group.id]);
+                        setGroupInviteCopied(group.id);
+                        setTimeout(() => setGroupInviteCopied(null), 1500);
+                      }}><Copy className="h-4 w-4" /></Button>
+                      {groupInviteCopied === group.id && <span className="text-green-600 text-xs ml-1">Copied!</span>}
+                    </>
+                  ) : null}
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+      <div className="w-full flex justify-center mt-8">
+        <span className="text-gray-300 text-lg font-semibold">More features coming soon...</span>
       </div>
       {/* Add Members Modal */}
       <Dialog open={showAddMembersModal.open} onOpenChange={open => setShowAddMembersModal({ open, groupId: open ? showAddMembersModal.groupId : null })}>
