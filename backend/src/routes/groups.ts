@@ -128,8 +128,13 @@ router.delete("/:groupId/members/:memberId", authenticateJWT, asyncHandler(async
   // Only allow if requester is a member
   const isMember = await prisma.groupMember.findFirst({ where: { groupId, userId } });
   if (!isMember) return res.status(403).json({ error: "Not a group member" });
-  // Don't allow removing self (optional: allow leaving group)
-  if (userId === memberId) return res.status(400).json({ error: "Use leave group to remove yourself" });
+  // Allow removing self (leaving group)
+  if (userId === memberId) {
+    // User is leaving the group
+    await prisma.groupMember.deleteMany({ where: { groupId, userId: memberId } });
+    res.json({ success: true });
+    return;
+  }
   // Remove member
   await prisma.groupMember.deleteMany({ where: { groupId, userId: memberId } });
   res.json({ success: true });
