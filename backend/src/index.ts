@@ -3,7 +3,6 @@ dotenv.config();
 
 import express from "express";
 import cors from "cors";
-import passport from "passport";
 import authRoutes from "./routes/auth";
 import transactionsRoutes from "./routes/transactions";
 import budgetsRoutes from "./routes/budgets";
@@ -20,7 +19,6 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-app.use(passport.initialize());
 
 app.use("/api/auth", authRoutes);
 app.use("/api/transactions", transactionsRoutes);

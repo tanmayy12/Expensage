@@ -2,8 +2,6 @@ import { Router } from "express";
 import prisma from "../prisma/client";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import passport from "passport";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import { asyncHandler } from "../utils/asyncHandler";
 
 const router = Router();
@@ -57,39 +55,5 @@ router.post("/login", asyncHandler(async (req, res) => {
   res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
 }));
 
-// --- Google OAuth2 Setup ---
-passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID!,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-  callbackURL: process.env.GOOGLE_CALLBACK_URL!,
-}, async (accessToken, refreshToken, profile, done) => {
-  try {
-    let user = await prisma.user.findUnique({ where: { googleId: profile.id } });
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          name: profile.displayName || "Google User",
-          email: profile.emails?.[0]?.value || `user_${profile.id}@google.com`,
-          googleId: profile.id,
-        }
-      });
-    }
-    done(null, user);
-  } catch (err) {
-    done(err);
-  }
-}));
-
-router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
-
-router.get("/google/callback", passport.authenticate("google", { session: false }), (req, res) => {
-  const user = req.user as { id: string; email: string } | undefined;
-  if (!user || !user.id || !user.email) {
-    res.status(400).json({ error: "Google authentication failed" });
-    return;
-  }
-  const token = signToken({ id: user.id, email: user.email });
-  res.redirect(`http://localhost:5173/?token=${token}`); // Adjust to your frontend port
-});
 
 export default router; 
