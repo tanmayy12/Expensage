@@ -355,7 +355,7 @@ const GroupExpenses = () => {
           const isCreator = group.createdBy === localStorage.getItem('userName');
           const isMember = groupMembersMap[group.id]?.some(m => m.id === userId);
           const hasLoadedMembers = Object.prototype.hasOwnProperty.call(groupMembersMap, group.id);
-          if (hasLoadedMembers && !isMember) return null; // Hide card only after members have loaded and user is not part of it
+          if (hasLoadedMembers && !isMember && !isCreator) return null; // Hide card only if user is neither creator nor member
           return (
             <Card key={group.id} className="glass-card p-6 flex flex-col gap-4 border-blue-200 shadow relative">
               <div className="font-bold text-lg flex items-center gap-2 mb-2 text-white">
