@@ -293,10 +293,18 @@ router.delete("/:id", authenticateJWT, asyncHandler(async (req, res) => {
   // @ts-ignore
   const userId = req.user.userId;
   const { id } = req.params;
-  const groupMember = await prisma.groupMember.findFirst({ where: { groupId: id, userId } });
-  if (!groupMember) {
-    res.status(404).json({ error: "Not found or not a member" });
-    return;
+  // fetch group and ensure requester is creator
+  const group = await prisma.group.findUnique({ where: { id } });
+  if (!group) {
+    return res.status(404).json({ error: "Group not found" });
+  }
+  // @ts-ignore
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    return res.status(400).json({ error: "User not found" });
+  }
+  if (group.createdBy !== user.name) {
+    return res.status(403).json({ error: "Only the group creator can delete this group" });
   }
   // Delete all related records before deleting the group
   await prisma.$transaction([
