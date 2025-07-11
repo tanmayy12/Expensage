@@ -152,7 +152,7 @@ body {
   /* ...existing code... */
   /* Hide horizontal scrollbar for Firefox */
   scrollbar-width: thin;
-  scrollbar-color: #fff transparent;
+  scrollbar-color: #000000 transparent;
   overflow-x: hidden;
 }
 

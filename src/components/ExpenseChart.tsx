@@ -67,36 +67,34 @@ const ExpenseChart = ({ transactions }: ExpenseChartProps) => {
               <h3 className="text-sm font-medium text-gray-300 mb-4">
                 Expenses by Category
               </h3>
-              <div className="h-56 mb-2">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={80}
-                      paddingAngle={2}
-                      dataKey="value"
-                      stroke="none"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number) => [`₹${value.toFixed(2)}`, 'Amount']} />
-                    <Legend 
-                      formatter={(value) => value.length > 15 ? value.substring(0, 15) + '...' : value}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div className="flex justify-center items-center mb-2" style={{ minHeight: 224 }}>
+                <PieChart width={400} height={300}>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => [`₹${value.toFixed(2)}`, 'Amount']} />
+                  <Legend 
+                    formatter={(value) => value.length > 15 ? value.substring(0, 15) + '...' : value}
+                  />
+                </PieChart>
               </div>
             </div>
 
             {/* Bar Chart Section */}
             {barData.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-300 mb-2 mt-3">
+                <h3 className="text-sm font-medium text-gray-300 mb-7 mt-5">
                   Income vs Expenses by Category
                 </h3>
                 <div className="h-56 mb-1">
@@ -121,7 +119,7 @@ const ExpenseChart = ({ transactions }: ExpenseChartProps) => {
             )}
 
             {/* Summary Section */}
-            <div className="glass-card border border-white/10 bg-card/80 shadow-lg p-4 rounded-xl mt-4">
+            <div className="glass-card border border-white/10 bg-card/80 shadow-lg p-4 rounded-xl mt-9">
               <h3 className="text-sm font-medium text-white mb-2">
                 Summary
               </h3>

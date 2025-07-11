@@ -17,31 +17,32 @@ import GlobalBackground from '@/components/ui/GlobalBackground';
 import { Transaction, incomeCategories, expenseCategories } from '@/types/Transaction';
 import { ChevronDown, ChevronUp, LayoutDashboard, TrendingUp, TrendingDown, DollarSign, PieChart, BarChart } from 'lucide-react';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { EtheralShadow } from '@/components/ui/etheral-shadow';
 
 const features = [
   {
     title: 'Smart Expense Tracking',
-    desc: 'Automatically categorize and track your expenses with AI-powered technology. Connect your bank accounts for seamless monitoring.',
+    desc: 'Effortlessly record and categorize your income and expenses. Instantly add transactions, view a detailed list of your financial activity and analyze your spending.',
   },
   {
-    title: 'Budget Management',
-    desc: 'Set personalized budgets for different categories and get real-time alerts when you\'re approaching your limits.',
+    title: 'Budget Tracking',
+    desc: 'Set personalized budgets for different categories and get real-time progress and warnings when limits are approacing your limits.',
   },
   {
     title: 'Financial Insights',
-    desc: 'Get detailed analytics and insights about your spending patterns with beautiful charts and reports.',
+    desc: 'Get detailed analytics and insights about your spending patterns with beautiful charts and graphs.',
   },
   {
-    title: 'Goal Setting',
-    desc: 'Set and track financial goals, whether it\'s saving for a vacation, paying off debt, or building an emergency fund.',
+    title: 'Subscription Management',
+    desc: 'Manage recurring subscriptions, tracks payment dates, calculates monthly/yearly totals and highlights upcoming payments.',
   },
   {
     title: 'Multi-Device Sync',
     desc: 'Access your financial data anywhere, anytime. Seamlessly sync across all your devices with real-time updates.',
   },
   {
-    title: 'Security First',
-    desc: 'Bank-level security with 256-bit encryption. Your financial data is protected with the highest security standards.',
+    title: 'Group Expenses',
+    desc: 'Easily manage shared expenses with friends, family or roommates. Create groups, add members, split bills and settle up—all in one place.',
   },
 ];
 
@@ -303,11 +304,13 @@ const Index = () => {
                     <ExpenseChart transactions={filteredTransactions} />
                   </div>
                 </div>
-                <div className="w-full">
-                  <TransactionsList
-                    transactions={filteredTransactions}
-                    onDelete={handleDeleteTransaction}
-                  />
+                <div className="w-full h-full flex flex-col">
+                  <div className="flex-1 h-full">
+                    <TransactionsList
+                      transactions={filteredTransactions}
+                      onDelete={handleDeleteTransaction}
+                    />
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -362,14 +365,26 @@ const Index = () => {
     );
   }
 
-    return (
+  // Landing page (not authenticated)
+  return (
     <div className="min-h-screen w-full flex flex-col">
-      <GlobalBackground />
-      {/* Hero Section */}
-      <div className="relative flex flex-col items-center justify-center min-h-[60vh] pt-12 pb-24 px-4">
+      {/* Main content with animated background */}
+      <div className="relative flex-1 overflow-hidden">
+        {/* EtheralShadow animated background */}
+        <div className="absolute inset-0 -z-10 w-full h-full">
+          <EtheralShadow
+            color="rgba(128, 128, 128, 1)"
+            animation={{ scale: 100, speed: 90 }}
+            noise={{ opacity: 1, scale: 1.2 }}
+            sizing="fill"
+            style={{ width: '100vw', height: '100%' }}
+          />
+        </div>
+        {/* All landing page content except footer goes here */}
+        {/* Nav Bar, Hero Section, Features, etc. */}
         {/* Nav Bar */}
         <div className="absolute top-0 left-0 w-full flex justify-between items-center px-8 py-6 z-10">
-          <div className="text-lg px-12 font-bold text-blue-400 tracking-tight" style={{ fontFamily: 'Cambria, Cochin, Georgia, Times, \"Times New Roman\", serif'}}>Expensage</div>
+          <div className="text-2xl px-12 font-bold text-white tracking-tight" style={{ fontFamily: 'Cambria, Cochin, Georgia, Times, \"Times New Roman\", serif'}}>Expensage</div>
           <div className="flex gap-4 items-center">
               <Button 
               variant="outline"
@@ -392,91 +407,49 @@ const Index = () => {
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4" style={{ fontFamily: 'Cambria, Cochin, Georgia, Times, \"Times New Roman\", serif' }}>
             Take Control of Your <span className="text-blue-400">Financial</span> <span className="text-purple-400">Future</span>
           </h1>
-          <p className="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto mb-8">
-            Track expenses, set budgets, and achieve your financial goals with our intelligent expense tracking platform. Simple, powerful, and designed for everyone.
+          <p className="text-slate-100 text-lg md:text-xl max-w-2xl mx-auto mt-6 mb-8">
+            Track expenses, set budgets and achieve your financial goals with our intelligent expense tracking platform. Simple, powerful, and designed for everyone.
           </p>
-                              </div>
-                              </div>
-      {/* Features Section */}
-      <div className="relative z-10 mt-32 px-4">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-bold text-white">
-            Everything You Need to <span className="text-purple-400">Master Your Finances</span>
-          </h2>
-          <p className="text-slate-300 mt-2 max-w-xl mx-auto">
-            Powerful features designed to make expense tracking effortless and financial management a breeze.
-          </p>
-                              </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {features.map((f) => (
-            <div key={f.title} className="bg-black/80 rounded-2xl p-6 shadow-lg border border-white/10 min-h-[180px] flex flex-col">
-              <div className="font-bold text-white text-lg mb-2">{f.title}</div>
-              <div className="text-slate-300 text-sm">{f.desc}</div>
-                              </div>
-          ))}
-                          </div>
-                      </div>
-      {/* CTA Gradient Section */}
-      <div className="mt-24 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-700 py-16 px-4 text-center">
-        <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Transform Your Financial Life?</h2>
-        <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
-          Join thousands of users who have already taken control of their finances. Start your free trial today and see the difference in just one week.
-        </p>
-        <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
-          <Button
-            className="rounded-full px-8 py-3 text-lg font-semibold bg-white text-blue-700 hover:bg-blue-100 shadow-lg"
-            onClick={() => setIsAuthModalOpen(true)}
-          >
-            Get Started
-          </Button>
-          <Button
-            variant="outline"
-            className="rounded-full px-8 py-3 text-lg font-semibold border-white text-white hover:bg-white/10 shadow-lg"
-            onClick={() => setIsAuthModalOpen(true)}
-          >
-            Contact Us
-          </Button>
-                          </div>
-        <div className="flex justify-center gap-8 mt-6 text-sm text-white/80">
-          <span>• No Credit Card Required</span>
-          <span>• 30-Day Free Trial</span>
-          <span>• Cancel Anytime</span>
-                </div>
+          <div className="flex justify-center mb-8">
+            <img
+              src="/dashboard.png"
+              alt="Expense Tracker Dashboard Preview"
+              className="rounded-xl shadow-lg max-w-full h-auto w-[90vw] md:w-[1000px] border border-white/10"
+            />
+          </div>
+        </div>
+        {/* Features Section */}
+        <div className="relative z-10 mt-32 px-4 mb-16">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-white">
+              Everything You Need to <span className="text-purple-400">Master Your Finances</span>
+            </h2>
+            <p className="text-slate-300 mt-2 max-w-xl mx-auto">
+              Powerful features designed to make expense tracking effortless and financial management a breeze.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {features.map((f) => (
+              <div key={f.title} className="bg-black/80 rounded-2xl p-6 shadow-lg border border-white/10 min-h-[180px] flex flex-col">
+                <div className="font-bold text-white text-lg mb-2">{f.title}</div>
+                <div className="text-slate-300 text-sm">{f.desc}</div>
               </div>
-      {/* Footer */}
+            ))}
+          </div>
+        </div>
+      </div>
+      {/* Footer (no animated background behind this) */}
       <footer className="bg-[#181828] py-12 px-4 mt-auto">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="max-w-6xl mx-auto flex flex-col items-center">
           <div>
-            <div className="text-lg font-bold text-blue-400 mb-2">Expensage</div>
-            <div className="text-slate-400 text-sm mb-4">Take control of your financial future with our comprehensive expense tracking platform. Simple, powerful, and designed for everyone.</div>
-            <div className="flex gap-2 mt-2">
-              <span className="inline-block w-3 h-3 bg-slate-500 rounded-full"></span>
-              <span className="inline-block w-3 h-3 bg-slate-500 rounded-full"></span>
-              <span className="inline-block w-3 h-3 bg-slate-500 rounded-full"></span>
-              <span className="inline-block w-3 h-3 bg-slate-500 rounded-full"></span>
+            <div className="text-lg font-bold text-white-400 mb-2 text-center">Expensage</div>
+            <div className="text-slate-400 text-sm mb-4 text-center">
+              Take control of your financial future with our comprehensive expense tracking platform. Simple, powerful, and designed for everyone.
             </div>
-            </div>
-          <div>
-            <div className="font-semibold text-white mb-2">Product</div>
-            <ul className="text-slate-400 text-sm space-y-1">
-              <li>Features</li>
-              <li>Pricing</li>
-              <li>Security</li>
-              <li>Integrations</li>
-            </ul>
-              </div>
-          <div>
-            <div className="font-semibold text-white mb-2">Support</div>
-            <ul className="text-slate-400 text-sm space-y-1">
-              <li>Help Center</li>
-              <li>Contact Us</li>
-              <li>API Docs</li>
-              <li>Status</li>
-            </ul>
-              </div>
-            </div>
-        <div className="mt-8 text-center text-xs text-slate-500">
-          © 2025 Expensage. All rights reserved. &nbsp;|&nbsp; Privacy Policy &nbsp;|&nbsp; Terms of Service &nbsp;|&nbsp; Cookie Policy
+          </div>
+          <div className="mt-8 text-center text-xs text-slate-500">
+            © 2025 Expensage. All rights reserved.
+          </div>
         </div>
       </footer>
       {/* Auth Modal */}
