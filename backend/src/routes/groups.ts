@@ -13,15 +13,15 @@ router.get("/", authenticateJWT, asyncHandler(async (req, res) => {
     where: { userId },
     include: { group: true }
   });
-  const groups = groupMembers.map(gm => gm.group);
+  const groups = groupMembers.map((gm: { group: any }) => gm.group);
   res.json(groups);
 }));
 
-// Create a new group (and add creator as member)
+// Create a new group (and add creator as admin member)
 router.post("/", authenticateJWT, asyncHandler(async (req, res) => {
   // @ts-ignore
   const userId = req.user.userId;
-  const { title } = req.body;
+  const { title, description } = req.body;
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return res.status(400).json({ error: "User not found" });
   // Generate a unique invite token
@@ -29,10 +29,11 @@ router.post("/", authenticateJWT, asyncHandler(async (req, res) => {
   const group = await prisma.group.create({
     data: {
       title,
+      description,
       createdBy: user.name,
       inviteToken,
       members: {
-        create: [{ userId, email: user.email }]
+        create: [{ userId, email: user.email, role: 'admin' }]
       }
     } as any,
     include: { members: true }
@@ -68,12 +69,12 @@ router.post("/join/:inviteToken", authenticateJWT, asyncHandler(async (req, res)
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return res.status(400).json({ error: "User not found" });
   const member = await prisma.groupMember.create({
-    data: { groupId: group.id, userId, email: user.email }
+    data: { groupId: group.id, userId, email: user.email, role: 'member' }
   });
   res.json({ success: true, groupId: group.id });
 }));
 
-// Add a member to a group (by email)
+// Add a member to a group (by email) - only admin can add
 router.post("/:groupId/members", authenticateJWT, asyncHandler(async (req, res) => {
   // @ts-ignore
   const userId = req.user.userId;
@@ -81,11 +82,11 @@ router.post("/:groupId/members", authenticateJWT, asyncHandler(async (req, res) 
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "Email required" });
 
-  // Check if group exists and user is a member
+  // Check if group exists and user is an admin
   const group = await prisma.group.findUnique({ where: { id: groupId } });
   if (!group) return res.status(404).json({ error: "Group not found" });
-  const isMember = await prisma.groupMember.findFirst({ where: { groupId, userId } });
-  if (!isMember) return res.status(403).json({ error: "Not a group member" });
+  const isAdmin = await prisma.groupMember.findFirst({ where: { groupId, userId, role: 'admin' } });
+  if (!isAdmin) return res.status(403).json({ error: "Only admin can add members" });
 
   // Find or create user by email
   let user = await prisma.user.findUnique({ where: { email } });
@@ -98,14 +99,14 @@ router.post("/:groupId/members", authenticateJWT, asyncHandler(async (req, res) 
   const alreadyMember = await prisma.groupMember.findFirst({ where: { groupId, userId: user.id } });
   if (alreadyMember) return res.status(400).json({ error: "User already a member" });
 
-  // Add to group
+  // Add to group as member
   const member = await prisma.groupMember.create({
-    data: { groupId, userId: user.id, email: user.email }
+    data: { groupId, userId: user.id, email: user.email, role: 'member' }
   });
   res.json(member);
 }));
 
-// List group members
+// List group members (with roles)
 router.get("/:groupId/members", authenticateJWT, asyncHandler(async (req, res) => {
   // @ts-ignore
   const userId = req.user.userId;
@@ -117,17 +118,23 @@ router.get("/:groupId/members", authenticateJWT, asyncHandler(async (req, res) =
     where: { groupId },
     include: { user: { select: { id: true, name: true, email: true } } }
   });
-  res.json(members.map(m => ({ id: m.user.id, name: m.user.name, email: m.user.email, joinedAt: m.joinedAt })));
+  res.json(members.map(m => ({
+    id: m.user.id,
+    name: m.user.name,
+    email: m.user.email,
+    role: m.role,
+    joinedAt: m.joinedAt instanceof Date ? m.joinedAt.toISOString() : m.joinedAt,
+  })));
 }));
 
-// Remove a member from a group
+// Remove a member from a group - only admin can remove
 router.delete("/:groupId/members/:memberId", authenticateJWT, asyncHandler(async (req, res) => {
   // @ts-ignore
   const userId = req.user.userId;
   const { groupId, memberId } = req.params;
-  // Only allow if requester is a member
-  const isMember = await prisma.groupMember.findFirst({ where: { groupId, userId } });
-  if (!isMember) return res.status(403).json({ error: "Not a group member" });
+  // Only allow if requester is admin
+  const isAdmin = await prisma.groupMember.findFirst({ where: { groupId, userId, role: 'admin' } });
+  if (!isAdmin) return res.status(403).json({ error: "Only admin can remove members" });
   // Don't allow removing self (optional: allow leaving group)
   if (userId === memberId) return res.status(400).json({ error: "Use leave group to remove yourself" });
   // Remove member
@@ -153,7 +160,7 @@ router.post("/:groupId/expenses", authenticateJWT, asyncHandler(async (req, res)
   if (!shares || !Array.isArray(shares) || shares.length === 0) {
     // Split equally
     const perPerson = parseFloat((amount / members.length).toFixed(2));
-    shares = members.map(m => ({ userId: m.userId, amount: perPerson }));
+    shares = members.map((m: { userId: string }) => ({ userId: m.userId, amount: perPerson }));
     // Adjust last share for rounding
     const total = shares.reduce((sum: number, s: Split) => sum + s.amount, 0);
     if (total !== amount) {
@@ -212,9 +219,9 @@ router.get("/:groupId/balances", authenticateJWT, asyncHandler(async (req, res) 
   // Calculate net owed for each member
   type Balance = { user: any; net: number };
   const balances: Record<string, Balance> = {};
-  members.forEach(m => { balances[m.userId] = { user: m.user, net: 0 }; });
+  members.forEach((m: { userId: string; user: any }) => { balances[m.userId] = { user: m.user, net: 0 }; });
   // For each expense, add (share - paid) to each user
-  expenses.forEach(exp => {
+  expenses.forEach((exp: { shares: { userId: string; amount: number }[]; paidBy: string; amount: number }) => {
     exp.shares.forEach((share: { userId: string; amount: number }) => {
       balances[share.userId].net -= share.amount;
     });
@@ -288,23 +295,19 @@ router.get("/:groupId/analytics", authenticateJWT, asyncHandler(async (req, res)
   });
 }));
 
-// Delete a group (only if user is a member)
+// Delete a group (only if user is admin)
 router.delete("/:id", authenticateJWT, asyncHandler(async (req, res) => {
   // @ts-ignore
   const userId = req.user.userId;
   const { id } = req.params;
-  // fetch group and ensure requester is creator
+  // fetch group and ensure requester is admin
   const group = await prisma.group.findUnique({ where: { id } });
   if (!group) {
     return res.status(404).json({ error: "Group not found" });
   }
-  // @ts-ignore
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    return res.status(400).json({ error: "User not found" });
-  }
-  if (group.createdBy !== user.name) {
-    return res.status(403).json({ error: "Only the group creator can delete this group" });
+  const isAdmin = await prisma.groupMember.findFirst({ where: { groupId: id, userId, role: 'admin' } });
+  if (!isAdmin) {
+    return res.status(403).json({ error: "Only admin can delete this group" });
   }
   // Delete all related records before deleting the group
   await prisma.$transaction([

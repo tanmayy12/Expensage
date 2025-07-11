@@ -10,252 +10,232 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 interface Group {
   id: string;
   title: string;
+  description: string;
   createdAt?: string;
   createdBy: string;
 }
 
-interface Balance {
-  user: { id: string; name: string; email: string };
-  net: number;
+interface GroupMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'member';
+  joinedAt?: string;
+}
+
+interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  category: string;
+  paidBy: string;
+  createdAt: string;
+  shares: { userId: string; amount: number; user?: { name: string; email: string } }[];
 }
 
 const GroupExpenses = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [balances, setBalances] = useState<{ [groupId: string]: Balance[] }>({});
   const [userId, setUserId] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
-  const [memberEmail, setMemberEmail] = useState('');
-  const [memberList, setMemberList] = useState<string[]>([]);
+  const [newGroupDesc, setNewGroupDesc] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
-  const [inviteLink, setInviteLink] = useState<string | null>(null);
-  const [inviteCopied, setInviteCopied] = useState(false);
-  const [showAddMembersModal, setShowAddMembersModal] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
-  const [inviteLinkForGroup, setInviteLinkForGroup] = useState<string | null>(null);
-  const [inviteCopiedForGroup, setInviteCopiedForGroup] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteModalGroupName, setInviteModalGroupName] = useState('');
-  const [inviteModalLink, setInviteModalLink] = useState('');
-  const [showDummyInvite, setShowDummyInvite] = useState(false);
-  const [activeInviteGroupId, setActiveInviteGroupId] = useState<string | null>(null);
-  const [groupInviteLinks, setGroupInviteLinks] = useState<{ [groupId: string]: string }>({});
-  const [groupInviteLoading, setGroupInviteLoading] = useState<string | null>(null);
-  const [groupInviteCopied, setGroupInviteCopied] = useState<string | null>(null);
-  const [showAddExpenseForm, setShowAddExpenseForm] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
-  const [expenseAmount, setExpenseAmount] = useState('');
-  const [expensePaidBy, setExpensePaidBy] = useState('');
-  const [splitMethod, setSplitMethod] = useState<'equal' | 'custom'>('equal');
-  const [customSplits, setCustomSplits] = useState<{ [userId: string]: string }>({});
+  const [inviteLinks, setInviteLinks] = useState<{ [groupId: string]: string }>({});
+  const [inviteLoading, setInviteLoading] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState<string | null>(null);
+  const [membersMap, setMembersMap] = useState<{ [groupId: string]: GroupMember[] }>({});
+  const [expensesMap, setExpensesMap] = useState<{ [groupId: string]: Expense[] }>({});
+  const [showExpenseDialog, setShowExpenseDialog] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
+  const [expenseForm, setExpenseForm] = useState<{ title: string; amount: string; category: string; date: string; paidBy: string; split: 'equal' | 'custom'; customSplits: { [userId: string]: string } }>({ title: '', amount: '', category: '', date: '', paidBy: '', split: 'equal', customSplits: {} });
   const [expenseError, setExpenseError] = useState<string | null>(null);
   const [expenseLoading, setExpenseLoading] = useState(false);
-  const [groupMembers, setGroupMembers] = useState<{ id: string; name: string; email: string }[]>([]);
-  const [groupExpenses, setGroupExpenses] = useState<{ [groupId: string]: any[] }>({});
-  const [groupMembersMap, setGroupMembersMap] = useState<{ [groupId: string]: { id: string; name: string; email: string }[] }>({});
 
   useEffect(() => {
-    // Get userId from localStorage (assume it's set after login)
     setUserId(localStorage.getItem('userId'));
+    setUserName(localStorage.getItem('userName'));
     fetchGroups();
   }, []);
 
-    const fetchGroups = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const token = localStorage.getItem('jwt');
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/groups`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error('Failed to fetch groups');
-        let data = await res.json();
-        // Sort groups by createdAt descending so latest is at the top
-        data = data.sort((a, b) => (b.createdAt && a.createdAt ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() : 0));
-        setGroups(data);
-        // Fetch balances for each group
-        data.forEach((group: Group) => fetchBalances(group.id));
-      } catch (err: any) {
-        setError(err.message || 'Error fetching groups');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-  const fetchBalances = async (groupId: string) => {
+  const fetchGroups = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem('jwt');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/balances`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error('Failed to fetch balances');
+      if (!res.ok) throw new Error('Failed to fetch groups');
       const data = await res.json();
-      setBalances(prev => ({ ...prev, [groupId]: data }));
-    } catch (err) {
-      // ignore error for individual group
+      setGroups(data);
+      // Fetch members and expenses for each group
+      data.forEach((g: Group) => {
+        fetchMembers(g.id);
+        fetchExpenses(g.id);
+      });
+    } catch (err: any) {
+      setError(err.message || 'Error fetching groups');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAddMemberEmail = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (memberEmail && !memberList.includes(memberEmail)) {
-      setMemberList(prev => [...prev, memberEmail]);
-      setMemberEmail('');
-    }
-  };
-
-  const handleCreateGroupAndInvite = async () => {
-    setCreateLoading(true);
-    setCreateError(null);
-    setInviteLink(null);
+  const fetchMembers = async (groupId: string) => {
     try {
       const token = localStorage.getItem('jwt');
-      // Create group
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/members`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setMembersMap(prev => ({ ...prev, [groupId]: data }));
+    } catch {}
+  };
+
+  const fetchExpenses = async (groupId: string) => {
+    try {
+      const token = localStorage.getItem('jwt');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/expenses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setExpensesMap(prev => ({ ...prev, [groupId]: data }));
+    } catch {}
+  };
+
+  const handleCreateGroup = async () => {
+    setCreateLoading(true);
+    setCreateError(null);
+    try {
+      const token = localStorage.getItem('jwt');
       const res = await fetch(`${import.meta.env.VITE_API_URL}/groups`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ title: newGroupName }),
+        body: JSON.stringify({ title: newGroupName, description: newGroupDesc }),
       });
       if (!res.ok) throw new Error('Failed to create group');
-      const group = await res.json();
-      // Optimistically add the group and user to state
-      const userId = localStorage.getItem('userId');
-      const userName = localStorage.getItem('userName');
-      const userEmail = localStorage.getItem('userEmail');
-      setGroups(prev => [group, ...prev]);
-      setGroupMembersMap(prev => ({
-        ...prev,
-        [group.id]: [{ id: userId, name: userName, email: userEmail }]
-      }));
-      // Fetch invite link
-      const inviteRes = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}/invite`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      let link = '';
-      if (inviteRes.ok) {
-        const data = await inviteRes.json();
-        link = data.inviteLink;
-      }
-      setInviteModalGroupName(group.title);
-      setInviteModalLink(link);
-      setShowInviteModal(true);
-      // Delay fetchGroups to allow backend to update
-      setTimeout(() => {
-        fetchGroups();
-      }, 1000); // 1 second delay
-    } catch (err) {
+      setShowAddForm(false);
+      setNewGroupName('');
+      setNewGroupDesc('');
+      fetchGroups();
+    } catch (err: any) {
       setCreateError(err.message || 'Error creating group');
     } finally {
       setCreateLoading(false);
     }
   };
 
-  const handleCopyInvite = () => {
-    if (inviteLink) {
-      navigator.clipboard.writeText(inviteLink);
-      setInviteCopied(true);
-      setTimeout(() => setInviteCopied(false), 1500);
-    }
-  };
-
-  const handleOpenAddMembers = async (groupId: string) => {
-    setShowAddMembersModal({ open: true, groupId });
-    setInviteLinkForGroup(null);
-    setInviteCopiedForGroup(false);
-    // Fetch invite link
+  const handleGetInviteLink = async (groupId: string) => {
+    setInviteLoading(groupId);
     try {
       const token = localStorage.getItem('jwt');
       const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/invite`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (res.ok) {
-        const data = await res.json();
-        setInviteLinkForGroup(data.inviteLink);
-      }
+      if (!res.ok) throw new Error('Failed to get invite link');
+      const data = await res.json();
+      setInviteLinks(prev => ({ ...prev, [groupId]: data.inviteLink }));
+    } catch {}
+    setInviteLoading(null);
+  };
+
+  const handleCopyInvite = (groupId: string) => {
+    if (inviteLinks[groupId]) {
+      navigator.clipboard.writeText(inviteLinks[groupId]);
+      setInviteCopied(groupId);
+      setTimeout(() => setInviteCopied(null), 1500);
+    }
+  };
+
+  const getMyRole = (groupId: string): 'admin' | 'member' | null => {
+    const members = membersMap[groupId];
+    if (!members || !userId) return null;
+    const me = members.find(m => m.id === userId);
+    return me?.role || null;
+  };
+
+  const handleRemoveMember = async (groupId: string, memberId: string) => {
+    if (!window.confirm('Remove this member from the group?')) return;
+    try {
+      const token = localStorage.getItem('jwt');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/members/${memberId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to remove member');
+      fetchMembers(groupId);
     } catch {}
   };
 
-  const handleCopyInviteForGroup = () => {
-    if (inviteLinkForGroup) {
-      navigator.clipboard.writeText(inviteLinkForGroup);
-      setInviteCopiedForGroup(true);
-      setTimeout(() => setInviteCopiedForGroup(false), 1500);
-    }
+  const handleDeleteGroup = async (groupId: string) => {
+    if (!window.confirm('Delete this group? This cannot be undone.')) return;
+    try {
+      const token = localStorage.getItem('jwt');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to delete group');
+      fetchGroups();
+    } catch {}
   };
 
-  const handleShowGroupInvite = async (groupId: string) => {
-    setActiveInviteGroupId(groupId);
-    if (!groupInviteLinks[groupId]) {
-      setGroupInviteLoading(groupId);
-      try {
-        const token = localStorage.getItem('jwt');
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/invite`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setGroupInviteLinks(prev => ({ ...prev, [groupId]: data.inviteLink }));
-        }
-      } finally {
-        setGroupInviteLoading(null);
-      }
-    }
-  };
-
-  const handleOpenAddExpense = async (groupId: string) => {
-    setShowAddExpenseForm({ open: true, groupId });
-    setExpenseAmount('');
-    setExpensePaidBy('');
-    setSplitMethod('equal');
-    setCustomSplits({});
+  const handleOpenExpenseDialog = (groupId: string) => {
+    setShowExpenseDialog({ open: true, groupId });
+    setExpenseForm({ title: '', amount: '', category: '', date: '', paidBy: '', split: 'equal', customSplits: {} });
     setExpenseError(null);
-    setExpenseLoading(false);
-    try {
-      const token = localStorage.getItem('jwt');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/members`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch group members');
-      const data = await res.json();
-      setGroupMembers(data);
-      if (data.length > 0) setExpensePaidBy(data[0].id);
-    } catch {
-      setGroupMembers([]);
-    }
   };
 
-  const fetchGroupExpenses = async (groupId: string) => {
-    try {
-      const token = localStorage.getItem('jwt');
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/expenses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch group expenses');
-      const data = await res.json();
-      setGroupExpenses(prev => ({ ...prev, [groupId]: data }));
-    } catch {}
+  const handleExpenseFormChange = (field: string, value: string) => {
+    setExpenseForm(prev => ({ ...prev, [field]: value }));
   };
 
-  useEffect(() => {
-    groups.forEach(group => fetchGroupExpenses(group.id));
-  }, [groups.length]);
+  const handleExpenseCustomSplit = (userId: string, value: string) => {
+    setExpenseForm(prev => ({ ...prev, customSplits: { ...prev.customSplits, [userId]: value } }));
+  };
 
-  // Fetch group members for all groups after fetching groups
-  useEffect(() => {
-    if (groups.length > 0) {
-      const token = localStorage.getItem('jwt');
-      groups.forEach(group => {
-        fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}/members`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-          .then(res => res.json())
-          .then(data => {
-            setGroupMembersMap(prev => ({ ...prev, [group.id]: data }));
-          });
-      });
+  const handleAddExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showExpenseDialog.groupId) return;
+    const { title, amount, category, date, paidBy, split, customSplits } = expenseForm;
+    if (!title || !amount || !category || !date || !paidBy) {
+      setExpenseError('All fields are required');
+      return;
     }
-  }, [groups]);
+    setExpenseLoading(true);
+    setExpenseError(null);
+    try {
+      const token = localStorage.getItem('jwt');
+      let splits = undefined;
+      if (split === 'custom') {
+        const members = membersMap[showExpenseDialog.groupId];
+        splits = members.map(m => ({ userId: m.id, amount: parseFloat(customSplits[m.id] || '0') }));
+      }
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${showExpenseDialog.groupId}/expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          description: title,
+          amount: parseFloat(amount),
+          category,
+          paidBy,
+          date,
+          splits,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to add expense');
+      setShowExpenseDialog({ open: false, groupId: null });
+      fetchExpenses(showExpenseDialog.groupId);
+    } catch (err: any) {
+      setExpenseError(err.message || 'Error adding expense');
+    } finally {
+      setExpenseLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -265,14 +245,10 @@ const GroupExpenses = () => {
           <h2 className="text-2xl font-bold text-white">Groups</h2>
         </div>
         <Button
-          onClick={() => { setShowAddForm((prev) => !prev); setInviteLink(null); setNewGroupName(''); setCreateError(null); }}
+          onClick={() => { setShowAddForm((prev) => !prev); setCreateError(null); }}
           className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
         >
-          {showAddForm ? (
-            <X className="h-4 w-4 mr-2" />
-          ) : (
-            <Plus className="h-4 w-4 mr-2" />
-          )}
+          {showAddForm ? <X className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
           {showAddForm ? 'Close' : 'Add Group'}
         </Button>
       </div>
@@ -295,56 +271,32 @@ const GroupExpenses = () => {
                   required
                 />
               </div>
+              <div>
+                <label htmlFor="group-desc" className="block text-sm font-medium mb-1">Description</label>
+                <Input
+                  id="group-desc"
+                  name="group-desc"
+                  type="text"
+                  placeholder="Group description"
+                  value={newGroupDesc}
+                  onChange={e => setNewGroupDesc(e.target.value)}
+                  required
+                />
+              </div>
               {createError && <div className="text-red-600 text-xs">{createError}</div>}
             </div>
           </CardContent>
           <CardFooter className="flex gap-2 flex-col items-start">
-            <div className="flex gap-2 flex-col w-full">
-              <div className="flex gap-2">
-                {/* Existing Add Group and Cancel buttons */}
-                <Button
-                  type="button"
-                  disabled={!newGroupName || createLoading}
-                  onClick={async () => {
-                    setCreateLoading(true);
-                    setCreateError(null);
-                    try {
-                      const token = localStorage.getItem('jwt');
-                      // Create group
-                      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                        body: JSON.stringify({ title: newGroupName }),
-                      });
-                      if (!res.ok) throw new Error('Failed to create group');
-                      const group = await res.json();
-                      // Optimistically show the new group card and mark the current user as a member
-                      const currentUserId = localStorage.getItem('userId');
-                      const currentUserName = localStorage.getItem('userName');
-                      const currentUserEmail = localStorage.getItem('userEmail');
-                      setGroups(prev => [group, ...prev]);
-                      setGroupMembersMap(prev => ({
-                        ...prev,
-                        [group.id]: [{ id: currentUserId, name: currentUserName, email: currentUserEmail }]
-                      }));
-                      // Fetch the complete groups list from the server to stay in sync (non-blocking)
-                      fetchGroups();
-                      setShowAddForm(false); // Close the form after group creation
-                      setNewGroupName('');
-                    } catch (err: any) {
-                      setCreateError(err.message || 'Error creating group');
-                    } finally {
-                      setCreateLoading(false);
-                    }
-                  }}
-                >
-                  {createLoading ? 'Adding...' : 'Add Group'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowAddForm(false)} disabled={createLoading}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
+            <Button
+              type="button"
+              disabled={!newGroupName || !newGroupDesc || createLoading}
+              onClick={handleCreateGroup}
+            >
+              {createLoading ? 'Adding...' : 'Add Group'}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setShowAddForm(false)} disabled={createLoading}>
+              Cancel
+            </Button>
           </CardFooter>
         </Card>
       )}
@@ -352,38 +304,66 @@ const GroupExpenses = () => {
       {error && <div className="text-red-600">{error}</div>}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {groups.map(group => {
-          const isCreator = group.createdBy === localStorage.getItem('userName');
-          const isMember = groupMembersMap[group.id]?.some(m => m.id === userId);
-
-          
+          const myRole = getMyRole(group.id);
+          const members = membersMap[group.id] || [];
+          const isAdmin = myRole === 'admin';
+          const isMember = myRole === 'admin' || myRole === 'member';
           return (
             <Card key={group.id} className="glass-card p-6 flex flex-col gap-4 border-blue-200 shadow relative">
               <div className="font-bold text-lg flex items-center gap-2 mb-2 text-white">
                 <DollarSign className="h-5 w-5 text-green-600" /> {group.title}
               </div>
-              {/* Members row */}
+              <div className="text-sm text-gray-300 mb-2">{group.description}</div>
               <div className="flex flex-wrap gap-2 mb-2">
-                {groupMembersMap[group.id]?.length > 0 ? (
-                  groupMembersMap[group.id].map(m => (
-                    <span key={m.id} className="bg-blue-900/40 text-blue-200 rounded px-2 py-0.5 text-xs font-medium">
-                      {m.name || m.email}
+                {members.length > 0 ? (
+                  members.map(m => (
+                    <span key={m.id} className={`rounded px-2 py-0.5 text-xs font-medium ${m.role === 'admin' ? 'bg-yellow-900/60 text-yellow-200' : 'bg-blue-900/40 text-blue-200'}`}>
+                      {m.name || m.email} {m.role === 'admin' && '(admin)'}
+                      {isAdmin && m.role !== 'admin' && (
+                        <Button size="icon" variant="ghost" className="ml-1 p-0.5" title="Remove member" onClick={() => handleRemoveMember(group.id, m.id)}><X className="h-3 w-3" /></Button>
+                      )}
                     </span>
                   ))
                 ) : (
                   <span className="text-xs text-gray-400">No members yet</span>
                 )}
               </div>
-              {/* Created At row */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-400">Created At</span>
-                <span className="text-sm">
-                  {group.createdAt ? new Date(group.createdAt).toLocaleDateString() : '—'}
-                </span>
+                <span className="text-sm">{group.createdAt ? new Date(group.createdAt).toLocaleDateString() : '—'}</span>
               </div>
+              <div className="flex gap-2 mt-2">
+                {isAdmin && (
+                  <Button size="sm" className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={() => handleGetInviteLink(group.id)}>
+                    <Plus className="h-4 w-4 mr-2" /> Invite Members
+                  </Button>
+                )}
+                {isMember && (
+                  <Button size="sm" className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white" onClick={() => handleOpenExpenseDialog(group.id)}>
+                    <Plus className="h-4 w-4 mr-2" /> Add Expense
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteGroup(group.id)} title="Delete Group">
+                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                  </Button>
+                )}
+              </div>
+              {/* Invite link */}
+              {inviteLoading === group.id ? (
+                <div className="text-xs text-gray-300 mt-2">Loading invite link...</div>
+              ) : inviteLinks[group.id] ? (
+                <div className="w-full mt-2 flex items-center gap-2">
+                  <Input value={inviteLinks[group.id]} readOnly className="flex-1" />
+                  <Button type="button" variant="outline" size="sm" onClick={() => handleCopyInvite(group.id)}><Copy className="h-4 w-4" /></Button>
+                  {inviteCopied === group.id && <span className="text-green-600 text-xs ml-1">Copied!</span>}
+                </div>
+              ) : null}
+              {/* Expenses */}
               <div className="mt-4">
                 <div className="font-semibold mb-1 text-sm text-gray-500">Recent Expenses</div>
                 <ul className="space-y-2">
-                  {(groupExpenses[group.id] || []).slice(0, 5).map(exp => (
+                  {(expensesMap[group.id] || []).slice(0, 5).map(exp => (
                     <li key={exp.id} className="bg-gray-800 rounded p-2 flex flex-col gap-1 border border-gray-700 text-white">
                       <div className="flex items-center gap-2 text-sm">
                         <span className="font-medium">{exp.description}</span>
@@ -395,250 +375,86 @@ const GroupExpenses = () => {
                       </div>
                     </li>
                   ))}
-                  {(groupExpenses[group.id] || []).length === 0 && <li className="text-xs text-gray-200">No expenses yet</li>}
+                  {(expensesMap[group.id] || []).length === 0 && <li className="text-xs text-gray-200">No expenses yet</li>}
                 </ul>
               </div>
-              <div className="flex gap-2 mt-4">
-                {isCreator ? (
-                  <>
-                    <Button size="sm" className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={() => handleShowGroupInvite(group.id)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Members
-                    </Button>
-                    <Button size="sm" className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white" onClick={() => handleOpenAddExpense(group.id)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Expense
-                    </Button>
-                    <Button variant="destructive" size="sm" className="flex-1" onClick={async () => {
-                      try {
-                        const token = localStorage.getItem('jwt');
-                        const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}`, {
-                          method: 'DELETE',
-                          headers: { Authorization: `Bearer ${token}` },
-                        });
-                        if (!res.ok) throw new Error('Failed to delete group');
-                        fetchGroups();
-                      } catch (err) {
-                        // Optionally show error toast
-                      }
-                    }} title="Delete Group">
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
-                  </>
-                ) : (
-                  <Button variant="destructive" size="sm" className="flex-1" onClick={async () => {
-                    try {
-                      const token = localStorage.getItem('jwt');
-                      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}/members/${userId}`, {
-                        method: 'DELETE',
-                        headers: { Authorization: `Bearer ${token}` },
-                      });
-                      if (!res.ok) throw new Error('Failed to leave group');
-                      // Remove group from UI
-                      setGroups(prev => prev.filter(g => g.id !== group.id));
-                      // Remove user from groupMembersMap for this group (for others, will update on next fetch)
-                      setGroupMembersMap(prev => {
-                        const updated = { ...prev };
-                        if (updated[group.id]) {
-                          updated[group.id] = updated[group.id].filter(m => m.id !== userId);
-                        }
-                        return updated;
-                      });
-                    } catch (err) {
-                      // Optionally show error toast
-                    }
-                  }} title="Leave Group">
-                    <X className="h-4 w-4 mr-1" />
-                    Leave Group
-                  </Button>
-                )}
-              </div>
-              {/* Inline invite link for this group */}
-              {activeInviteGroupId === group.id && (
-                <div className="w-full mt-2 flex items-center gap-2">
-                  {groupInviteLoading === group.id ? (
-                    <span className="text-xs text-gray-300">Loading invite link...</span>
-                  ) : groupInviteLinks[group.id] ? (
-                    <>
-                      <span className="text-xs text-gray-300 break-all">{groupInviteLinks[group.id]}</span>
-                      <Button type="button" variant="outline" size="sm" onClick={() => {
-                        navigator.clipboard.writeText(groupInviteLinks[group.id]);
-                        setGroupInviteCopied(group.id);
-                        setTimeout(() => setGroupInviteCopied(null), 1500);
-                      }}><Copy className="h-4 w-4" /></Button>
-                      {groupInviteCopied === group.id && <span className="text-green-600 text-xs ml-1">Copied!</span>}
-                    </>
-                  ) : null}
-                </div>
-              )}
             </Card>
           );
         })}
       </div>
-      {/* Add Members Modal */}
-      <Dialog open={showAddMembersModal.open} onOpenChange={open => setShowAddMembersModal({ open, groupId: open ? showAddMembersModal.groupId : null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Members to Group</DialogTitle>
-          </DialogHeader>
-          {showAddMembersModal.groupId && (
-            <div className="space-y-4">
-              <div className="font-bold text-lg">{groups.find(g => g.id === showAddMembersModal.groupId)?.title}</div>
-              {/* Styled container for invite link and copy button */}
-              <div className="bg-gray-50 rounded-lg p-4 border flex flex-col gap-2">
-                {inviteLinkForGroup ? (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <Input value={inviteLinkForGroup} readOnly className="flex-1" />
-                      <Button type="button" variant="outline" onClick={handleCopyInviteForGroup}><Copy className="h-4 w-4" /></Button>
-                      {inviteCopiedForGroup && <span className="text-green-600 text-xs ml-1">Copied!</span>}
-                    </div>
-                    <div className="text-xs text-gray-300">Share this link with others to let them join your group.</div>
-                  </>
-                ) : (
-                  <div className="text-gray-300">Generating invite link...</div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button type="button" className="w-full" onClick={() => setShowAddMembersModal({ open: false, groupId: null })}>Add Group</Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-      {/* Add Dialog for add expense form */}
-      <Dialog open={showAddExpenseForm.open} onOpenChange={open => setShowAddExpenseForm({ open, groupId: open ? showAddExpenseForm.groupId : null })}>
+      {/* Expense Dialog */}
+      <Dialog open={showExpenseDialog.open} onOpenChange={open => setShowExpenseDialog({ open, groupId: open ? showExpenseDialog.groupId : null })}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Group Expense</DialogTitle>
           </DialogHeader>
-                      <form
-              onSubmit={async e => {
-                e.preventDefault();
-                if (!expenseAmount || !expensePaidBy) {
-                  setExpenseError('Please fill in all required fields');
-                  return;
-                }
-                if (!showAddExpenseForm.groupId) {
-                  setExpenseError('Please create a group first before adding expenses');
-                  return;
-                }
-                setExpenseLoading(true);
-                setExpenseError(null);
-                try {
-                  const token = localStorage.getItem('jwt');
-                  const splits = splitMethod === 'equal'
-                    ? undefined
-                    : groupMembers.map(m => ({ userId: m.id, amount: parseFloat(customSplits[m.id] || '0') }));
-                  const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${showAddExpenseForm.groupId}/expenses`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                    body: JSON.stringify({
-                      amount: parseFloat(expenseAmount),
-                      paidBy: expensePaidBy,
-                      description: 'Group expense',
-                      category: 'General',
-                      splits,
-                    }),
-                  });
-                  if (!res.ok) throw new Error('Failed to add expense');
-                  setShowAddExpenseForm({ open: false, groupId: null });
-                  fetchGroups();
-                  fetchGroupExpenses(showAddExpenseForm.groupId);
-                } catch (err: any) {
-                  setExpenseError(err.message || 'Error adding expense');
-                } finally {
-                  setExpenseLoading(false);
-                }
-              }}
-              className="space-y-4"
-            >
+          {showExpenseDialog.groupId && (
+            <form onSubmit={handleAddExpense} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Total Amount</label>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="[0-9]*"
-                  value={expenseAmount}
-                  onChange={e => setExpenseAmount(e.target.value.replace(/[^0-9.]/g, ''))}
-                  required
-                />
+                <label className="block text-sm font-medium mb-1">Title</label>
+                <Input type="text" value={expenseForm.title} onChange={e => handleExpenseFormChange('title', e.target.value)} required />
               </div>
-                              <div>
-                  <label className="block text-sm font-medium mb-1">Paid By</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <button
-                        type="button"
-                        className="w-full border border-white/10 rounded px-3 py-2 flex items-center gap-2 text-left bg-card/80 text-card-foreground shadow-lg"
-                      >
-                        <span className={expensePaidBy ? 'truncate' : 'truncate text-gray-400'}>
-                          {expensePaidBy ? groupMembers.find(m => m.id === expensePaidBy)?.name || groupMembers.find(m => m.id === expensePaidBy)?.email || 'Unknown' : 'Select who paid'}
-                        </span>
-                        <ChevronDown className="h-4 w-4 ml-auto text-gray-400" />
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="min-w-[var(--radix-popover-trigger-width)] relative z-50 max-h-96 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md p-2">
-                      <div className="flex flex-col">
-                        {groupMembers.map(m => (
-                          <button
-                            key={m.id}
-                            type="button"
-                            className={`relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground hover:bg-accent hover:text-accent-foreground transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ${expensePaidBy === m.id ? 'bg-blue-900/60 text-blue-300' : ''}`}
-                            onClick={() => setExpensePaidBy(m.id)}
-                          >
-                            {m.name || m.email}
-                          </button>
-                        ))}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Amount</label>
+                <Input type="number" min="0" step="0.01" value={expenseForm.amount} onChange={e => handleExpenseFormChange('amount', e.target.value)} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Category</label>
+                <Input type="text" value={expenseForm.category} onChange={e => handleExpenseFormChange('category', e.target.value)} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Date</label>
+                <Input type="date" value={expenseForm.date} onChange={e => handleExpenseFormChange('date', e.target.value)} required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Paid By</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button type="button" className="w-full border border-white/10 rounded px-3 py-2 flex items-center gap-2 text-left bg-card/80 text-card-foreground shadow-lg">
+                      <span className={expenseForm.paidBy ? 'truncate' : 'truncate text-gray-400'}>
+                        {expenseForm.paidBy ? (membersMap[showExpenseDialog.groupId]?.find(m => m.id === expenseForm.paidBy)?.name || 'Unknown') : 'Select who paid'}
+                      </span>
+                      <ChevronDown className="h-4 w-4 ml-auto text-gray-400" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="min-w-[var(--radix-popover-trigger-width)] relative z-50 max-h-96 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md p-2">
+                    <div className="flex flex-col">
+                      {(membersMap[showExpenseDialog.groupId] || []).map(m => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          className={`relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none focus:bg-accent focus:text-accent-foreground hover:bg-accent hover:text-accent-foreground transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50 ${expenseForm.paidBy === m.id ? 'bg-blue-900/60 text-blue-300' : ''}`}
+                          onClick={() => handleExpenseFormChange('paidBy', m.id)}
+                        >
+                          {m.name || m.email}
+                        </button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Split Method</label>
                 <div className="flex gap-4">
                   <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="splitMethod"
-                      value="equal"
-                      checked={splitMethod === 'equal'}
-                      onChange={() => setSplitMethod('equal')}
-                    />
-                    Equal (default)
+                    <input type="radio" name="splitMethod" value="equal" checked={expenseForm.split === 'equal'} onChange={() => handleExpenseFormChange('split', 'equal')} /> Equal
                   </label>
                   <label className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="splitMethod"
-                      value="custom"
-                      checked={splitMethod === 'custom'}
-                      onChange={() => setSplitMethod('custom')}
-                    />
-                    Custom (manual split per person)
+                    <input type="radio" name="splitMethod" value="custom" checked={expenseForm.split === 'custom'} onChange={() => handleExpenseFormChange('split', 'custom')} /> Custom
                   </label>
                 </div>
               </div>
-              {splitMethod === 'custom' && (
+              {expenseForm.split === 'custom' && (
                 <div className="space-y-2">
-                  {groupMembers.map(m => (
+                  {(membersMap[showExpenseDialog.groupId] || []).map(m => (
                     <div key={m.id} className="flex items-center gap-2">
                       <span className="w-32">{m.name || m.email}</span>
                       <Input
-                        type="text"
-                        inputMode="decimal"
-                        pattern="[0-9]*"
-                        value={customSplits[m.id] || ''}
-                        onChange={e => {
-                          // Only allow numbers and a single decimal point
-                          let val = e.target.value.replace(/[^0-9.]/g, '');
-                          // Prevent more than one decimal point
-                          if ((val.match(/\./g) || []).length > 1) {
-                            val = val.substring(0, val.length - 1);
-                          }
-                          setCustomSplits(prev => ({ ...prev, [m.id]: val }));
-                        }}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={expenseForm.customSplits[m.id] || ''}
+                        onChange={e => handleExpenseCustomSplit(m.id, e.target.value)}
                         placeholder="Amount"
                         required
                       />
@@ -646,17 +462,13 @@ const GroupExpenses = () => {
                   ))}
                 </div>
               )}
-
               {expenseError && <div className="text-red-600 text-xs">{expenseError}</div>}
               <DialogFooter>
-                <Button type="submit" disabled={expenseLoading}>
-                  {expenseLoading ? 'Adding...' : 'Add Expense'}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowAddExpenseForm({ open: false, groupId: null })} disabled={expenseLoading}>
-                  Cancel
-                </Button>
+                <Button type="submit" disabled={expenseLoading}>{expenseLoading ? 'Adding...' : 'Add Expense'}</Button>
+                <Button type="button" variant="outline" onClick={() => setShowExpenseDialog({ open: false, groupId: null })} disabled={expenseLoading}>Cancel</Button>
               </DialogFooter>
             </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

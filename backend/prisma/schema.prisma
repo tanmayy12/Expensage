@@ -58,6 +58,7 @@ model Subscription {
 model Group {
   id        String   @id @default(uuid())
   title     String
+  description String // New: group description
   createdAt DateTime @default(now())
   createdBy String
   inviteToken String? @unique
@@ -73,6 +74,7 @@ model GroupMember {
   user      User     @relation(fields: [userId], references: [id])
   userId    String
   email     String
+  role      String   // New: 'admin' or 'member'
   joinedAt  DateTime @default(now())
 }
 
