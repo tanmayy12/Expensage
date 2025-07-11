@@ -395,12 +395,6 @@ const Index = () => {
           <p className="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto mb-8">
             Track expenses, set budgets, and achieve your financial goals with our intelligent expense tracking platform. Simple, powerful, and designed for everyone.
           </p>
-                  <Button
-            className="rounded-full px-8 py-3 text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg"
-            onClick={() => setIsAuthModalOpen(true)}
-                  >
-            Start Your Free Trial
-                  </Button>
                               </div>
                               </div>
       {/* Features Section */}

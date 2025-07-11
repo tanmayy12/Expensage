@@ -47,7 +47,7 @@ const ExpenseChart = ({ transactions }: ExpenseChartProps) => {
   const totalExpenses = pieData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <Card className="glass-card h-full flex flex-col">
+    <Card className="glass-card flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <TrendingUp className="h-5 w-5"/>
@@ -67,7 +67,7 @@ const ExpenseChart = ({ transactions }: ExpenseChartProps) => {
               <h3 className="text-sm font-medium text-gray-300 mb-4">
                 Expenses by Category
               </h3>
-              <div className="h-64 mb-4">
+              <div className="h-56 mb-2">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -96,10 +96,10 @@ const ExpenseChart = ({ transactions }: ExpenseChartProps) => {
             {/* Bar Chart Section */}
             {barData.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-gray-300 mb-7 mt-3">
+                <h3 className="text-sm font-medium text-gray-300 mb-2 mt-3">
                   Income vs Expenses by Category
                 </h3>
-                <div className="h-64 mb-6">
+                <div className="h-56 mb-1">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={barData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                       <CartesianGrid stroke="gray" />
