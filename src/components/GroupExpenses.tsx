@@ -430,7 +430,7 @@ const GroupExpenses = () => {
                   <Button variant="destructive" size="sm" className="flex-1" onClick={async () => {
                     try {
                       const token = localStorage.getItem('jwt');
-                      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}/leave`, {
+                      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${group.id}/members/${userId}`, {
                         method: 'DELETE',
                         headers: { Authorization: `Bearer ${token}` },
                       });

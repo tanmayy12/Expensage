@@ -120,18 +120,6 @@ router.get("/:groupId/members", authenticateJWT, asyncHandler(async (req, res) =
   res.json(members.map(m => ({ id: m.user.id, name: m.user.name, email: m.user.email, joinedAt: m.joinedAt })));
 }));
 
-// Leave group (remove self)
-router.delete("/:groupId/leave", authenticateJWT, asyncHandler(async (req, res) => {
-  // @ts-ignore
-  const userId = req.user.userId;
-  const { groupId } = req.params;
-  // Check membership
-  const membership = await prisma.groupMember.findFirst({ where: { groupId, userId } });
-  if (!membership) return res.status(404).json({ error: "Not a group member" });
-  await prisma.groupMember.deleteMany({ where: { groupId, userId } });
-  return res.json({ success: true });
-}));
-
 // Remove a member from a group
 router.delete("/:groupId/members/:memberId", authenticateJWT, asyncHandler(async (req, res) => {
   // @ts-ignore
