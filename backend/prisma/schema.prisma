@@ -84,6 +84,7 @@ model GroupExpense {
   amount      Float
   paidBy      String   // userId of payer
   createdAt   DateTime @default(now())
+  date        DateTime @default(now())
   shares      GroupExpenseShare[]
   category    String
 }

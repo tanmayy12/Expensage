@@ -36,6 +36,7 @@ interface Expense {
   paidBy: string;
   createdAt: string;
   shares: { userId: string; amount: number; user?: { name: string; email: string } }[];
+  date?: string;
 }
 
 const GroupExpenses = () => {
@@ -59,11 +60,12 @@ const GroupExpenses = () => {
   const [settleLoading, setSettleLoading] = useState(false);
   const [settleError, setSettleError] = useState<string | null>(null);
   const [showExpenseDialog, setShowExpenseDialog] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
-  const [expenseForm, setExpenseForm] = useState<{ amount: string; paidBy: string; split: 'equal' | 'custom'; customSplits: { [userId: string]: string } }>({ amount: '', paidBy: '', split: 'equal', customSplits: {} });
+  const [expenseForm, setExpenseForm] = useState<{ amount: string; paidBy: string; split: 'equal' | 'custom'; customSplits: { [userId: string]: string }; date: string }>({ amount: '', paidBy: '', split: 'equal', customSplits: {}, date: new Date().toISOString().split('T')[0] });
   const [expenseError, setExpenseError] = useState<string | null>(null);
   const [expenseLoading, setExpenseLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
   const [showInviteFor, setShowInviteFor] = useState<string | null>(null);
+  const [leaveDialog, setLeaveDialog] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
 
   useEffect(() => {
     setUserId(localStorage.getItem('userId'));
@@ -207,6 +209,18 @@ const GroupExpenses = () => {
     } catch {}
   };
 
+  const handleLeaveGroup = async (groupId: string) => {
+    try {
+      const token = localStorage.getItem('jwt');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/members/${userId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to leave group');
+      setGroups(prev => prev.filter(g => g.id !== groupId));
+    } catch {}
+  };
+
   const handleOpenBalances = (groupId: string) => {
     setShowBalances({ open: true, groupId });
     setSettleError(null);
@@ -214,7 +228,7 @@ const GroupExpenses = () => {
 
   const handleOpenExpenseDialog = (groupId: string) => {
     setShowExpenseDialog({ open: true, groupId });
-    setExpenseForm({ amount: '', paidBy: '', split: 'equal', customSplits: {} });
+    setExpenseForm({ amount: '', paidBy: '', split: 'equal', customSplits: {}, date: new Date().toISOString().split('T')[0] });
     setExpenseError(null);
   };
 
@@ -250,9 +264,9 @@ const GroupExpenses = () => {
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showExpenseDialog.groupId) return;
-    const { amount, paidBy, split, customSplits } = expenseForm;
-    if (!amount || !paidBy) {
-      setExpenseError('Amount and paid by are required');
+    const { amount, paidBy, split, customSplits, date } = expenseForm;
+    if (!amount || !paidBy || !date) {
+      setExpenseError('Amount, paid by, and date are required');
       return;
     }
     setExpenseLoading(true);
@@ -272,7 +286,7 @@ const GroupExpenses = () => {
           amount: parseFloat(amount),
           category: 'General',
           paidBy,
-          date: new Date().toISOString().split('T')[0],
+          date,
           splits,
         }),
       });
@@ -299,6 +313,21 @@ const GroupExpenses = () => {
 
   const handleCancelDelete = () => {
     setDeleteDialog({ open: false, groupId: null });
+  };
+
+  const handleLeaveButtonClick = (groupId: string) => {
+    setLeaveDialog({ open: true, groupId });
+  };
+
+  const handleConfirmLeave = async () => {
+    if (leaveDialog.groupId) {
+      await handleLeaveGroup(leaveDialog.groupId);
+      setLeaveDialog({ open: false, groupId: null });
+    }
+  };
+
+  const handleCancelLeave = () => {
+    setLeaveDialog({ open: false, groupId: null });
   };
 
   return (
@@ -361,12 +390,12 @@ const GroupExpenses = () => {
           const isAdmin = myRole === 'admin';
           const isMember = myRole === 'admin' || myRole === 'member';
           return (
-            <Card key={group.id} className="glass-card p-6 flex flex-col gap-4 border-blue-200 shadow relative">
-              <div className="font-bold text-lg flex items-center gap-2 mb-2 text-white">
+            <Card key={group.id} className="glass-card p-4 flex flex-col gap-1 border-blue-200 shadow relative">
+              <div className="font-bold text-lg flex items-center gap-2 mb-0 text-white">
                 <DollarSign className="h-5 w-5 text-green-600" /> {group.title}
               </div>
-              <div className="text-sm text-gray-300 mb-2">{group.description}</div>
-              <div className="flex flex-wrap gap-2 mb-2">
+              <div className="text-sm text-gray-300 mb-0">{group.description}</div>
+              <div className="flex flex-wrap gap-2 mb-0">
                 {members.length > 0 ? (
                   members.map(m => (
                     <span key={m.id} className={`rounded px-2 py-0.5 text-xs font-medium ${m.role === 'admin' ? 'bg-yellow-900/60 text-yellow-200' : 'bg-blue-900/40 text-blue-200'}`}>
@@ -380,10 +409,6 @@ const GroupExpenses = () => {
                   <span className="text-xs text-gray-400">No members yet</span>
                 )}
               </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-400">Created At</span>
-                <span className="text-sm">{group.createdAt ? new Date(group.createdAt).toLocaleDateString() : '—'}</span>
-              </div>
               {/* Expenses */}
               <div className="mt-4">
                 <div className="font-semibold mb-1 text-sm text-gray-500">Recent Expenses</div>
@@ -393,6 +418,17 @@ const GroupExpenses = () => {
                       <div className="flex items-center gap-2 text-sm">
                         <span className="font-medium">{exp.description}</span>
                         <span className="text-blue-400 font-bold ml-auto">₹{exp.amount.toFixed(2)}</span>
+                        {(exp.date || exp.createdAt) && (
+                          <span className="ml-2 text-xs text-gray-400">
+                            {(() => {
+                              const d = new Date(exp.date || exp.createdAt);
+                              const day = String(d.getDate()).padStart(2, '0');
+                              const month = String(d.getMonth() + 1).padStart(2, '0');
+                              const year = d.getFullYear();
+                              return `${day}-${month}-${year}`;
+                            })()}
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-gray-300 flex gap-2">
                         <span>Paid by: {exp.shares && exp.shares.length > 0 && exp.shares.find(s => s.userId === exp.paidBy)?.user?.name || exp.paidBy}</span>
@@ -414,8 +450,8 @@ const GroupExpenses = () => {
                 <Button size="sm" className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white" onClick={() => handleOpenExpenseDialog(group.id)}>
                   <Plus className="h-4 w-4 mr-2" /> Add Expense
                 </Button>
-                <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteButtonClick(group.id)} title="Delete Group">
-                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleLeaveButtonClick(group.id)} title="Leave Group">
+                  <X className="h-4 w-4 mr-1" /> Leave
                 </Button>
               </div>
               {/* Invite link, only for the group whose Add Members was clicked */}
@@ -445,6 +481,17 @@ const GroupExpenses = () => {
               <div>
                 <label className="block text-sm font-medium mb-1">Amount</label>
                 <Input type="number" min="0" value={expenseForm.amount} onChange={e => handleExpenseFormChange('amount', e.target.value)} required className="no-spinner" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Date</label>
+                <Input
+                  type="date"
+                  value={expenseForm.date}
+                  onChange={e => handleExpenseFormChange('date', e.target.value)}
+                  required
+                  className="pr-10"
+                  style={{ colorScheme: "dark" }}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Paid By</label>
@@ -550,6 +597,20 @@ const GroupExpenses = () => {
           <DialogFooter>
             <Button variant="destructive" onClick={handleConfirmDelete}>Delete</Button>
             <Button variant="outline" onClick={handleCancelDelete}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Leave Group Confirmation Dialog */}
+      <Dialog open={leaveDialog.open} onOpenChange={open => setLeaveDialog({ open, groupId: open ? leaveDialog.groupId : null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Leave Group</DialogTitle>
+          </DialogHeader>
+          <div>Are you sure you want to leave this group?</div>
+          <DialogFooter>
+            <Button variant="destructive" onClick={handleConfirmLeave}>Leave</Button>
+            <Button variant="outline" onClick={handleCancelLeave}>Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

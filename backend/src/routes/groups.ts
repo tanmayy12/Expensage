@@ -140,7 +140,7 @@ router.post("/:groupId/expenses", authenticateJWT, asyncHandler(async (req, res)
   // @ts-ignore
   const userId = req.user.userId;
   const { groupId } = req.params;
-  const { description, amount, category, paidBy, splits } = req.body;
+  const { description, amount, category, paidBy, splits, date } = req.body;
   // splits: [{ userId, amount }], if not provided, split equally
   if (!description || !amount || !category || !paidBy) return res.status(400).json({ error: "Missing fields" });
   // Check if user is a member
@@ -168,6 +168,7 @@ router.post("/:groupId/expenses", authenticateJWT, asyncHandler(async (req, res)
       amount,
       category,
       paidBy,
+      date: date ? new Date(date) : new Date(),
       shares: {
         create: shares.map((s: Split) => ({ userId: s.userId, amount: s.amount }))
       }
