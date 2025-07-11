@@ -201,6 +201,25 @@ router.get("/:groupId/expenses", authenticateJWT, asyncHandler(async (req, res) 
   res.json(expenses);
 }));
 
+// Delete a specific expense
+router.delete("/:groupId/expenses/:expenseId", authenticateJWT, asyncHandler(async (req, res) => {
+  // @ts-ignore
+  const userId = req.user.userId;
+  const { groupId, expenseId } = req.params;
+  // Check if user is a member
+  const isMember = await prisma.groupMember.findFirst({ where: { groupId, userId } });
+  if (!isMember) return res.status(403).json({ error: "Not a group member" });
+  // Get the expense and check if user created it
+  const expense = await prisma.groupExpense.findUnique({ where: { id: expenseId } });
+  if (!expense) return res.status(404).json({ error: "Expense not found" });
+  if (expense.paidBy !== userId) return res.status(403).json({ error: "Can only delete expenses you created" });
+  // First delete all related shares
+  await prisma.groupExpenseShare.deleteMany({ where: { expenseId } });
+  // Then delete the expense
+  await prisma.groupExpense.delete({ where: { id: expenseId } });
+  res.json({ success: true });
+}));
+
 // Calculate group balances (who owes what)
 router.get("/:groupId/balances", authenticateJWT, asyncHandler(async (req, res) => {
   // @ts-ignore

@@ -66,6 +66,7 @@ const GroupExpenses = () => {
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
   const [showInviteFor, setShowInviteFor] = useState<string | null>(null);
   const [leaveDialog, setLeaveDialog] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
+  const [deleteExpenseDialog, setDeleteExpenseDialog] = useState<{ open: boolean; expenseId: string | null; groupId: string | null }>({ open: false, expenseId: null, groupId: null });
 
   useEffect(() => {
     setUserId(localStorage.getItem('userId'));
@@ -300,6 +301,33 @@ const GroupExpenses = () => {
     }
   };
 
+  const handleDeleteExpense = async (groupId: string, expenseId: string) => {
+    try {
+      const token = localStorage.getItem('jwt');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/expenses/${expenseId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to delete expense');
+      fetchExpenses(groupId);
+    } catch {}
+  };
+
+  const handleDeleteExpenseButtonClick = (expenseId: string, groupId: string) => {
+    setDeleteExpenseDialog({ open: true, expenseId, groupId });
+  };
+
+  const handleConfirmDeleteExpense = async () => {
+    if (deleteExpenseDialog.expenseId && deleteExpenseDialog.groupId) {
+      await handleDeleteExpense(deleteExpenseDialog.groupId, deleteExpenseDialog.expenseId);
+      setDeleteExpenseDialog({ open: false, expenseId: null, groupId: null });
+    }
+  };
+
+  const handleCancelDeleteExpense = () => {
+    setDeleteExpenseDialog({ open: false, expenseId: null, groupId: null });
+  };
+
   const handleDeleteButtonClick = (groupId: string) => {
     setDeleteDialog({ open: true, groupId });
   };
@@ -428,6 +456,17 @@ const GroupExpenses = () => {
                               return `${day}-${month}-${year}`;
                             })()}
                           </span>
+                        )}
+                        {exp.paidBy === userId && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-4 w-4 p-0 text-red-400 hover:text-red-300"
+                            onClick={() => handleDeleteExpenseButtonClick(exp.id, group.id)}
+                            title="Delete expense"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
                         )}
                       </div>
                       <div className="text-xs text-gray-300 flex gap-2">
@@ -611,6 +650,20 @@ const GroupExpenses = () => {
           <DialogFooter>
             <Button variant="destructive" onClick={handleConfirmLeave}>Leave</Button>
             <Button variant="outline" onClick={handleCancelLeave}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Expense Confirmation Dialog */}
+      <Dialog open={deleteExpenseDialog.open} onOpenChange={open => setDeleteExpenseDialog({ open, expenseId: open ? deleteExpenseDialog.expenseId : null, groupId: open ? deleteExpenseDialog.groupId : null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Expense</DialogTitle>
+          </DialogHeader>
+          <div>Are you sure you want to delete this expense?</div>
+          <DialogFooter>
+            <Button variant="destructive" onClick={handleConfirmDeleteExpense}>Delete</Button>
+            <Button variant="outline" onClick={handleCancelDeleteExpense}>Cancel</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
