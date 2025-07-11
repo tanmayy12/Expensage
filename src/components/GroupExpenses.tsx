@@ -23,6 +23,11 @@ interface GroupMember {
   joinedAt?: string;
 }
 
+interface Balance {
+  user: { id: string; name: string; email: string };
+  net: number;
+}
+
 interface Expense {
   id: string;
   description: string;
@@ -49,10 +54,16 @@ const GroupExpenses = () => {
   const [inviteCopied, setInviteCopied] = useState<string | null>(null);
   const [membersMap, setMembersMap] = useState<{ [groupId: string]: GroupMember[] }>({});
   const [expensesMap, setExpensesMap] = useState<{ [groupId: string]: Expense[] }>({});
+  const [balancesMap, setBalancesMap] = useState<{ [groupId: string]: Balance[] }>({});
+  const [showBalances, setShowBalances] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
+  const [settleLoading, setSettleLoading] = useState(false);
+  const [settleError, setSettleError] = useState<string | null>(null);
   const [showExpenseDialog, setShowExpenseDialog] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
-  const [expenseForm, setExpenseForm] = useState<{ title: string; amount: string; category: string; date: string; paidBy: string; split: 'equal' | 'custom'; customSplits: { [userId: string]: string } }>({ title: '', amount: '', category: '', date: '', paidBy: '', split: 'equal', customSplits: {} });
+  const [expenseForm, setExpenseForm] = useState<{ amount: string; paidBy: string; split: 'equal' | 'custom'; customSplits: { [userId: string]: string } }>({ amount: '', paidBy: '', split: 'equal', customSplits: {} });
   const [expenseError, setExpenseError] = useState<string | null>(null);
   const [expenseLoading, setExpenseLoading] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; groupId: string | null }>({ open: false, groupId: null });
+  const [showInviteFor, setShowInviteFor] = useState<string | null>(null);
 
   useEffect(() => {
     setUserId(localStorage.getItem('userId'));
@@ -75,6 +86,7 @@ const GroupExpenses = () => {
       data.forEach((g: Group) => {
         fetchMembers(g.id);
         fetchExpenses(g.id);
+        fetchBalances(g.id);
       });
     } catch (err: any) {
       setError(err.message || 'Error fetching groups');
@@ -92,6 +104,18 @@ const GroupExpenses = () => {
       if (!res.ok) return;
       const data = await res.json();
       setMembersMap(prev => ({ ...prev, [groupId]: data }));
+    } catch {}
+  };
+
+  const fetchBalances = async (groupId: string) => {
+    try {
+      const token = localStorage.getItem('jwt');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/balances`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setBalancesMap(prev => ({ ...prev, [groupId]: data }));
     } catch {}
   };
 
@@ -172,7 +196,6 @@ const GroupExpenses = () => {
   };
 
   const handleDeleteGroup = async (groupId: string) => {
-    if (!window.confirm('Delete this group? This cannot be undone.')) return;
     try {
       const token = localStorage.getItem('jwt');
       const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}`, {
@@ -184,9 +207,14 @@ const GroupExpenses = () => {
     } catch {}
   };
 
+  const handleOpenBalances = (groupId: string) => {
+    setShowBalances({ open: true, groupId });
+    setSettleError(null);
+  };
+
   const handleOpenExpenseDialog = (groupId: string) => {
     setShowExpenseDialog({ open: true, groupId });
-    setExpenseForm({ title: '', amount: '', category: '', date: '', paidBy: '', split: 'equal', customSplits: {} });
+    setExpenseForm({ amount: '', paidBy: '', split: 'equal', customSplits: {} });
     setExpenseError(null);
   };
 
@@ -198,12 +226,33 @@ const GroupExpenses = () => {
     setExpenseForm(prev => ({ ...prev, customSplits: { ...prev.customSplits, [userId]: value } }));
   };
 
+  const handleSettle = async (groupId: string, balance: Balance) => {
+    if (!window.confirm(`Settle ₹${(-balance.net).toFixed(2)} with ${balance.user.name || balance.user.email}?`)) return;
+    setSettleLoading(true);
+    setSettleError(null);
+    try {
+      const token = localStorage.getItem('jwt');
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/groups/${groupId}/settle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ toUserId: balance.user.id, amount: -balance.net, method: 'cash' }),
+      });
+      if (!res.ok) throw new Error('Failed to settle');
+      fetchBalances(groupId);
+      fetchExpenses(groupId);
+      setSettleLoading(false);
+    } catch (err: any) {
+      setSettleError(err.message || 'Error settling');
+      setSettleLoading(false);
+    }
+  };
+
   const handleAddExpense = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showExpenseDialog.groupId) return;
-    const { title, amount, category, date, paidBy, split, customSplits } = expenseForm;
-    if (!title || !amount || !category || !date || !paidBy) {
-      setExpenseError('All fields are required');
+    const { amount, paidBy, split, customSplits } = expenseForm;
+    if (!amount || !paidBy) {
+      setExpenseError('Amount and paid by are required');
       return;
     }
     setExpenseLoading(true);
@@ -219,11 +268,11 @@ const GroupExpenses = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          description: title,
+          description: `Expense of ₹${amount}`,
           amount: parseFloat(amount),
-          category,
+          category: 'General',
           paidBy,
-          date,
+          date: new Date().toISOString().split('T')[0],
           splits,
         }),
       });
@@ -235,6 +284,21 @@ const GroupExpenses = () => {
     } finally {
       setExpenseLoading(false);
     }
+  };
+
+  const handleDeleteButtonClick = (groupId: string) => {
+    setDeleteDialog({ open: true, groupId });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteDialog.groupId) {
+      await handleDeleteGroup(deleteDialog.groupId);
+      setDeleteDialog({ open: false, groupId: null });
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialog({ open: false, groupId: null });
   };
 
   return (
@@ -271,25 +335,13 @@ const GroupExpenses = () => {
                   required
                 />
               </div>
-              <div>
-                <label htmlFor="group-desc" className="block text-sm font-medium mb-1">Description</label>
-                <Input
-                  id="group-desc"
-                  name="group-desc"
-                  type="text"
-                  placeholder="Group description"
-                  value={newGroupDesc}
-                  onChange={e => setNewGroupDesc(e.target.value)}
-                  required
-                />
-              </div>
               {createError && <div className="text-red-600 text-xs">{createError}</div>}
             </div>
           </CardContent>
-          <CardFooter className="flex gap-2 flex-col items-start">
+          <CardFooter className="flex gap-2 flex-row items-center">
             <Button
               type="button"
-              disabled={!newGroupName || !newGroupDesc || createLoading}
+              disabled={!newGroupName || createLoading}
               onClick={handleCreateGroup}
             >
               {createLoading ? 'Adding...' : 'Add Group'}
@@ -332,33 +384,6 @@ const GroupExpenses = () => {
                 <span className="text-sm text-gray-400">Created At</span>
                 <span className="text-sm">{group.createdAt ? new Date(group.createdAt).toLocaleDateString() : '—'}</span>
               </div>
-              <div className="flex gap-2 mt-2">
-                {isAdmin && (
-                  <Button size="sm" className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={() => handleGetInviteLink(group.id)}>
-                    <Plus className="h-4 w-4 mr-2" /> Invite Members
-                  </Button>
-                )}
-                {isMember && (
-                  <Button size="sm" className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white" onClick={() => handleOpenExpenseDialog(group.id)}>
-                    <Plus className="h-4 w-4 mr-2" /> Add Expense
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteGroup(group.id)} title="Delete Group">
-                    <Trash2 className="h-4 w-4 mr-1" /> Delete
-                  </Button>
-                )}
-              </div>
-              {/* Invite link */}
-              {inviteLoading === group.id ? (
-                <div className="text-xs text-gray-300 mt-2">Loading invite link...</div>
-              ) : inviteLinks[group.id] ? (
-                <div className="w-full mt-2 flex items-center gap-2">
-                  <Input value={inviteLinks[group.id]} readOnly className="flex-1" />
-                  <Button type="button" variant="outline" size="sm" onClick={() => handleCopyInvite(group.id)}><Copy className="h-4 w-4" /></Button>
-                  {inviteCopied === group.id && <span className="text-green-600 text-xs ml-1">Copied!</span>}
-                </div>
-              ) : null}
               {/* Expenses */}
               <div className="mt-4">
                 <div className="font-semibold mb-1 text-sm text-gray-500">Recent Expenses</div>
@@ -378,6 +403,33 @@ const GroupExpenses = () => {
                   {(expensesMap[group.id] || []).length === 0 && <li className="text-xs text-gray-200">No expenses yet</li>}
                 </ul>
               </div>
+              {/* Action Buttons at Bottom */}
+              <div className="flex gap-2 mt-4">
+                <Button size="sm" className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white" onClick={() => {
+                  handleGetInviteLink(group.id);
+                  setShowInviteFor(group.id);
+                }}>
+                  <Plus className="h-4 w-4 mr-2" /> Add Members
+                </Button>
+                <Button size="sm" className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white" onClick={() => handleOpenExpenseDialog(group.id)}>
+                  <Plus className="h-4 w-4 mr-2" /> Add Expense
+                </Button>
+                <Button variant="destructive" size="sm" className="flex-1" onClick={() => handleDeleteButtonClick(group.id)} title="Delete Group">
+                  <Trash2 className="h-4 w-4 mr-1" /> Delete
+                </Button>
+              </div>
+              {/* Invite link, only for the group whose Add Members was clicked */}
+              {showInviteFor === group.id && (
+                inviteLoading === group.id ? (
+                  <div className="text-xs text-gray-300 mt-2">Loading invite link...</div>
+                ) : inviteLinks[group.id] ? (
+                  <div className="w-full mt-2 flex items-center gap-2">
+                    <Input value={inviteLinks[group.id]} readOnly className="flex-1" />
+                    <Button type="button" variant="outline" size="sm" onClick={() => handleCopyInvite(group.id)}><Copy className="h-4 w-4" /></Button>
+                    {inviteCopied === group.id && <span className="text-green-600 text-xs ml-1">Copied!</span>}
+                  </div>
+                ) : null
+              )}
             </Card>
           );
         })}
@@ -391,20 +443,8 @@ const GroupExpenses = () => {
           {showExpenseDialog.groupId && (
             <form onSubmit={handleAddExpense} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <Input type="text" value={expenseForm.title} onChange={e => handleExpenseFormChange('title', e.target.value)} required />
-              </div>
-              <div>
                 <label className="block text-sm font-medium mb-1">Amount</label>
-                <Input type="number" min="0" step="0.01" value={expenseForm.amount} onChange={e => handleExpenseFormChange('amount', e.target.value)} required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Category</label>
-                <Input type="text" value={expenseForm.category} onChange={e => handleExpenseFormChange('category', e.target.value)} required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Date</label>
-                <Input type="date" value={expenseForm.date} onChange={e => handleExpenseFormChange('date', e.target.value)} required />
+                <Input type="number" min="0" value={expenseForm.amount} onChange={e => handleExpenseFormChange('amount', e.target.value)} required className="no-spinner" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Paid By</label>
@@ -457,6 +497,7 @@ const GroupExpenses = () => {
                         onChange={e => handleExpenseCustomSplit(m.id, e.target.value)}
                         placeholder="Amount"
                         required
+                        className="no-spinner"
                       />
                     </div>
                   ))}
@@ -471,8 +512,50 @@ const GroupExpenses = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Balances Dialog */}
+      <Dialog open={showBalances.open} onOpenChange={open => setShowBalances({ open, groupId: open ? showBalances.groupId : null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Group Balances</DialogTitle>
+          </DialogHeader>
+          {showBalances.groupId && (
+            <div className="space-y-4">
+              {(balancesMap[showBalances.groupId] || []).map(b => (
+                <div key={b.user.id} className="flex items-center justify-between border-b border-gray-700 pb-2 text-sm">
+                  <span>{b.user.name || b.user.email}</span>
+                  <span className={b.net < 0 ? 'text-red-500' : 'text-green-400'}>
+                    {b.net < 0 ? `Owes ₹${(-b.net).toFixed(2)}` : `Gets ₹${b.net.toFixed(2)}`}
+                  </span>
+                  {b.net < 0 && b.user.id === userId && (
+                    <Button size="sm" disabled={settleLoading} onClick={() => handleSettle(showBalances.groupId!, b)}>
+                      Settle Up
+                    </Button>
+                  )}
+                </div>
+              ))}
+              {settleError && <div className="text-red-600 text-xs">{settleError}</div>}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Group Confirmation Dialog */}
+      <Dialog open={deleteDialog.open} onOpenChange={open => setDeleteDialog({ open, groupId: open ? deleteDialog.groupId : null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Group</DialogTitle>
+          </DialogHeader>
+          <div>Are you sure you want to delete this group?</div>
+          <DialogFooter>
+            <Button variant="destructive" onClick={handleConfirmDelete}>Delete</Button>
+            <Button variant="outline" onClick={handleCancelDelete}>Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default GroupExpenses;
+

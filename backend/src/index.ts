@@ -11,7 +11,7 @@ import groupsRoutes from "./routes/groups";
 
 const app = express();
 const allowedOrigins = [
-  "http://localhost:5173",
+  "http://localhost:8080",
   "https://expensage.netlify.app"
 ];
 app.use(cors({

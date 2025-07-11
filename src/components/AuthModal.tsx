@@ -35,6 +35,10 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
       });
       const data = await res.json();
       if (data.token) {
+        if (data.user) {
+          localStorage.setItem('userId', data.user.id);
+          localStorage.setItem('userName', data.user.name || '');
+        }
         localStorage.setItem('jwt', data.token);
         onSuccess();
         navigate('/');
