@@ -406,7 +406,7 @@ const Index = () => {
           </p>
           <div className="flex justify-center mb-8 px-2">
             <img
-              src="/dashboard.png"
+              src="/dashboard.jpg"
               alt="Expense Tracker Dashboard Preview"
               className="rounded-xl shadow-lg max-w-full h-auto w-[95vw] sm:w-[90vw] md:w-[1000px] border border-white/10"
             />
