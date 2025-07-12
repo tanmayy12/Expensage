@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import AuthModal from '@/components/AuthModal';
@@ -67,6 +67,7 @@ const Index = () => {
   const [dateFilter, setDateFilter] = useState('last10');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const navigate = useNavigate();
+  const footerRef = useRef<HTMLDivElement>(null);
 
   const token = localStorage.getItem('jwt');
   const isAuthenticated = !!token;
@@ -200,18 +201,18 @@ const Index = () => {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
           />
-          <div className="pt-20 pb-8 px-2 md:px-8 max-w-7xl mx-auto w-full flex-1">
+          <div className="pt-20 pb-8 px-2 sm:px-4 md:px-8 max-w-7xl mx-auto w-full flex-1">
             <TabsContent value="dashboard">
               {/* Top bar: Dashboard title (left), Add Transaction & Filters (right) */}
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                 {/* Dashboard title with icon */}
                 <div className="flex items-center gap-2">
-                  <LayoutDashboard className="h-6 w-6 text-blue-600" />
-                  <h2 className="text-2xl font-bold text-white">Dashboard</h2>
+                  <LayoutDashboard className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">Dashboard</h2>
                 </div>
-                <div className="flex flex-row gap-3 w-full md:w-auto justify-end">
+                <div className="flex flex-row gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                   <Button
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white text-sm sm:text-base"
                     onClick={() => setIsAddModalOpen(true)}
                   >
                     + Add Transaction
@@ -219,13 +220,13 @@ const Index = () => {
                   <div className="relative">
                     <Button
                       variant="outline"
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
                       onClick={() => {
                         setFilterOpen(f => !f);
                         setFilterDropdown('none');
                       }}
                     >
-                      Filters <ChevronDown className="h-4 w-4" />
+                      Filters <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
                     {filterOpen && (
                       <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-[#23233a] rounded-lg shadow-lg z-50 p-4 border border-white/10">
@@ -268,37 +269,37 @@ const Index = () => {
                 </div>
               </div>
               {/* Summary cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
                 <Card className="glass-card relative">
                   <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg font-medium text-green-400">Total Income</CardTitle>
-                    <TrendingUp className="h-6 w-6 text-green-400 opacity-80 ml-2" />
+                    <CardTitle className="text-base sm:text-lg font-medium text-green-400">Total Income</CardTitle>
+                    <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-green-400 opacity-80 ml-2" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-white-400">₹{totalIncome.toFixed(2)}</div>
+                    <div className="text-xl sm:text-2xl font-bold text-white-400">₹{totalIncome.toFixed(2)}</div>
                   </CardContent>
                 </Card>
                 <Card className="glass-card relative">
                   <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg font-medium text-red-400">Total Expense</CardTitle>
-                    <TrendingDown className="h-6 w-6 text-red-400 opacity-80 ml-2" />
+                    <CardTitle className="text-base sm:text-lg font-medium text-red-400">Total Expense</CardTitle>
+                    <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-red-400 opacity-80 ml-2" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-white-400">₹{totalExpense.toFixed(2)}</div>
+                    <div className="text-xl sm:text-2xl font-bold text-white-400">₹{totalExpense.toFixed(2)}</div>
                   </CardContent>
                 </Card>
-                <Card className="glass-card relative">
+                <Card className="glass-card relative sm:col-span-2 lg:col-span-1">
                   <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg font-medium text-blue-400">Balance</CardTitle>
-                    <DollarSign className="h-6 w-6 text-blue-400 opacity-80 ml-2" />
+                    <CardTitle className="text-base sm:text-lg font-medium text-blue-400">Balance</CardTitle>
+                    <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-blue-400 opacity-80 ml-2" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold text-white-400">₹{balance.toFixed(2)}</div>
+                    <div className="text-xl sm:text-2xl font-bold text-white-400">₹{balance.toFixed(2)}</div>
                   </CardContent>
                 </Card>
               </div>
               {/* Main content: Expense Analysis (left), Recent Transactions (right) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <div className="w-full h-full flex flex-col">
                   <div className="flex-1 h-full">
                     <ExpenseChart transactions={filteredTransactions} />
@@ -383,73 +384,64 @@ const Index = () => {
         {/* All landing page content except footer goes here */}
         {/* Nav Bar, Hero Section, Features, etc. */}
         {/* Nav Bar */}
-        <div className="absolute top-0 left-0 w-full flex justify-between items-center px-8 py-6 z-10">
-          <div className="text-2xl px-12 font-bold text-white tracking-tight" style={{ fontFamily: 'Cambria, Cochin, Georgia, Times, \"Times New Roman\", serif'}}>Expensage</div>
-          <div className="flex gap-4 items-center">
-              <Button 
-              variant="outline"
-              className="rounded-full px-6 py-2 bg-white/10 text-white border-white/20 hover:bg-white/20"
-                onClick={() => setIsAuthModalOpen(true)}
-            >
-              Contact
-            </Button>
+        <div className="absolute top-0 left-0 w-full flex justify-between items-center px-4 sm:px-6 md:px-8 py-4 sm:py-6 z-10">
+          <div className="text-xl sm:text-2xl font-bold text-white tracking-tight" style={{ fontFamily: 'Cambria, Cochin, Georgia, Times, \"Times New Roman\", serif'}}>Expensage</div>
+          <div className="flex gap-2 sm:gap-4 items-center">
             <Button
               variant="ghost"
-              className="rounded-full px-6 py-2 text-white border border-white/20 hover:bg-white/10"
+              className="rounded-full px-3 sm:px-6 py-2 text-white border border-white/20 hover:bg-white/10 text-sm sm:text-base"
               onClick={() => navigate('/auth')}
             >
               Sign In
-              </Button>
+            </Button>
           </div>
         </div>
         {/* Headline */}
-        <div className="z-10 mt-24 text-center">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4" style={{ fontFamily: 'Cambria, Cochin, Georgia, Times, \"Times New Roman\", serif' }}>
+        <div className="z-10 mt-20 sm:mt-24 text-center px-4 sm:px-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-4 px-2" style={{ fontFamily: 'Cambria, Cochin, Georgia, Times, \"Times New Roman\", serif' }}>
             Take Control of Your <span className="text-blue-400">Financial</span> <span className="text-purple-400">Future</span>
           </h1>
-          <p className="text-slate-100 text-lg md:text-xl max-w-2xl mx-auto mt-6 mb-8">
-            Track expenses, set budgets and achieve your financial goals with our intelligent expense tracking platform. Simple, powerful, and designed for everyone.
+          <p className="text-slate-100 text-base sm:text-lg md:text-xl max-w-2xl mx-auto mt-6 mb-8 px-4">
+            Track expenses, set budgets and achieve your financial goals with our intelligent expense tracking platform. Simple, powerful and designed for everyone.
           </p>
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-8 px-2">
             <img
               src="/dashboard.png"
               alt="Expense Tracker Dashboard Preview"
-              className="rounded-xl shadow-lg max-w-full h-auto w-[90vw] md:w-[1000px] border border-white/10"
+              className="rounded-xl shadow-lg max-w-full h-auto w-[95vw] sm:w-[90vw] md:w-[1000px] border border-white/10"
             />
           </div>
         </div>
         {/* Features Section */}
-        <div className="relative z-10 mt-32 px-4 mb-16">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-white">
+        <div className="relative z-10 mt-24 sm:mt-32 px-4 mb-16">
+          <div className="text-center mb-8 sm:mb-10 px-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white">
               Everything You Need to <span className="text-purple-400">Master Your Finances</span>
             </h2>
-            <p className="text-slate-300 mt-2 max-w-xl mx-auto">
+            <p className="text-slate-300 mt-2 max-w-xl mx-auto text-sm sm:text-base">
               Powerful features designed to make expense tracking effortless and financial management a breeze.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto px-2">
             {features.map((f) => (
-              <div key={f.title} className="bg-black/80 rounded-2xl p-6 shadow-lg border border-white/10 min-h-[180px] flex flex-col">
-                <div className="font-bold text-white text-lg mb-2">{f.title}</div>
-                <div className="text-slate-300 text-sm">{f.desc}</div>
+              <div key={f.title} className="bg-black/80 rounded-2xl p-4 sm:p-6 shadow-lg border border-white/10 min-h-[160px] sm:min-h-[180px] flex flex-col">
+                <div className="font-bold text-white text-base sm:text-lg mb-2">{f.title}</div>
+                <div className="text-slate-300 text-xs sm:text-sm">{f.desc}</div>
               </div>
             ))}
           </div>
         </div>
       </div>
       {/* Footer (no animated background behind this) */}
-      <footer className="bg-[#181828] py-12 px-4 mt-auto">
-        <div className="max-w-6xl mx-auto flex flex-col items-center">
-          <div>
-            <div className="text-lg font-bold text-white-400 mb-2 text-center">Expensage</div>
-            <div className="text-slate-400 text-sm mb-4 text-center">
-              Take control of your financial future with our comprehensive expense tracking platform. Simple, powerful, and designed for everyone.
-            </div>
-          </div>
-          <div className="mt-8 text-center text-xs text-slate-500">
-            © 2025 Expensage. All rights reserved.
-          </div>
+      <footer ref={footerRef} className="bg-[#181828] py-6 px-4 mt-auto relative overflow-hidden">
+        {/* Faint Expensage background text */}
+        <div className="absolute inset-0 flex justify-center items-center pointer-events-none select-none z-0">
+          <span className="text-[8vw] font-bold text-white/5 mb-5">Expensage</span>
+        </div>
+        <div className="max-w-6xl mx-auto flex flex-col items-center text-center text-slate-400 text-sm relative z-10">
+          <div className="mb-4">Your all-in-one platform for tracking expenses, managing budgets and sharing group costs—secure, smart and easy to use.</div>
+          <div className="font-medium text-base mb-1">Designed with <span className="inline-block animate-pulse text-red-500">♥</span> by Tanmay</div>
+          <div className="text-xs text-slate-500">© 2025 Expensage. All rights reserved.</div>
         </div>
       </footer>
       {/* Auth Modal */}
