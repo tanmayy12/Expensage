@@ -26,39 +26,72 @@ const AuthModal = ({ isOpen, onClose, onSuccess }: AuthModalProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLogin) {
-      // LOGIN
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: formData.email, password: formData.password }),
-      });
-      const data = await res.json();
-      if (data.token) {
-        if (data.user) {
-          localStorage.setItem('userId', data.user.id);
-          localStorage.setItem('userName', data.user.name || '');
+    
+    // Validate password confirmation for signup
+    if (!isLogin && formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+    
+    try {
+      if (isLogin) {
+        // LOGIN
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email, password: formData.password }),
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: "Login failed" }));
+          alert(errorData.error || "Login failed");
+          return;
         }
-        localStorage.setItem('jwt', data.token);
-        onSuccess();
-        navigate('/');
+        
+        const data = await res.json();
+        if (data.token) {
+          if (data.user) {
+            localStorage.setItem('userId', data.user.id);
+            localStorage.setItem('userName', data.user.name || '');
+          }
+          localStorage.setItem('jwt', data.token);
+          onSuccess();
+          navigate('/');
+        } else {
+          alert(data.error || "Login failed");
+        }
       } else {
-        alert(data.error || "Login failed");
+        // SIGNUP
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ error: "Registration failed" }));
+          alert(errorData.error || "Registration failed");
+          return;
+        }
+        
+        const data = await res.json();
+        if (data.id) {
+          alert("Registration successful! Please log in.");
+          setIsLogin(true);
+          // Clear form data
+          setFormData({
+            name: '',
+            email: '',
+            password: '',
+            confirmPassword: ''
+          });
+        } else {
+          alert(data.error || "Registration failed");
+        }
       }
-    } else {
-      // SIGNUP
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: formData.name, email: formData.email, password: formData.password }),
-      });
-      const data = await res.json();
-      if (data.id) {
-        alert("Registration successful! Please log in.");
-        setIsLogin(true);
-      } else {
-        alert(data.error || "Registration failed");
-      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      alert("Network error. Please check your connection and try again.");
     }
   };
 
