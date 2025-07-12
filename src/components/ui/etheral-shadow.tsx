@@ -169,20 +169,7 @@ export function EtheralShadow({
                 />
             </div>
 
-            <div
-                style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    textAlign: "center",
-                    zIndex: 10
-                }}
-            >
-                <h1 className="md:text-7xl text-6xl lg:text-8xl font-bold text-center text-foreground relative z-20">
-                    Etheral Shadows
-                </h1>
-            </div>
+
 
             {noise && noise.opacity > 0 && (
                 <div
